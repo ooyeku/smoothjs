@@ -65,6 +65,7 @@ export class SmoothComponent {
     this._pendingContext = null;
     this._pendingPortals = [];
     this._portalMap = new Map(); // id -> { targetEl, containerEl }
+    this._delegatedHandlers = new Map(); // event -> root listener
 
     this.onCreate();
   }
@@ -468,15 +469,47 @@ export class SmoothComponent {
   
   bindEvents() {
     if (!this.element) return;
-    this.events.forEach((handler, selector) => {
-      const [event, sel] = selector.split(':');
-      const elements = sel ? this.element.querySelectorAll(sel) : [this.element];
-      
-      elements.forEach(el => {
-        el.removeEventListener(event, handler);
-        el.addEventListener(event, handler);
-      });
+    // Tear down any previous delegated handlers
+    if (this._delegatedHandlers && this._delegatedHandlers.size) {
+      try {
+        for (const [evt, fn] of this._delegatedHandlers.entries()) {
+          this.element.removeEventListener(evt, fn);
+        }
+      } catch {}
+      this._delegatedHandlers.clear();
+    }
+    // Build delegation table: event -> [{ sel, handler }]
+    const table = new Map();
+    this.events.forEach((handler, key) => {
+      const idx = key.indexOf(':');
+      const event = idx >= 0 ? key.slice(0, idx) : key;
+      const sel = idx >= 0 ? key.slice(idx + 1) : null;
+      if (!table.has(event)) table.set(event, []);
+      table.get(event).push({ sel, handler });
     });
+    // Attach a single listener per event on the root element
+    for (const [evt, rules] of table.entries()) {
+      const listener = (e) => {
+        // For each rule, perform closest() matching when selector is provided
+        for (const { sel, handler } of rules) {
+          if (sel) {
+            let matchEl = null;
+            try { matchEl = e.target && this.element && this.element.contains(e.target) ? e.target.closest(sel) : null; } catch {}
+            if (matchEl && this.element.contains(matchEl)) {
+              // Proxy event with currentTarget set to matched element for ergonomics
+              const proxy = Object.create(e);
+              try { Object.defineProperty(proxy, 'currentTarget', { value: matchEl, enumerable: true }); } catch {}
+              handler(proxy);
+            }
+          } else {
+            // No selector: call handler for any event bubbling to root
+            handler(e);
+          }
+        }
+      };
+      this.element.addEventListener(evt, listener);
+      this._delegatedHandlers.set(evt, listener);
+    }
   }
   
   on(event, selector, handler) {
@@ -562,6 +595,15 @@ export class SmoothComponent {
       }
       // Clear context entries for this element
       try { if (this.element) _contextRegistry.delete(this.element); } catch {}
+      // Remove delegated root listeners
+      if (this._delegatedHandlers && this._delegatedHandlers.size) {
+        try {
+          for (const [evt, fn] of this._delegatedHandlers.entries()) {
+            this.element.removeEventListener(evt, fn);
+          }
+        } catch {}
+        this._delegatedHandlers.clear();
+      }
       this.events.clear();
       this.element.innerHTML = '';
       this.element = null;

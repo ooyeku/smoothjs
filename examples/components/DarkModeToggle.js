@@ -3,13 +3,11 @@ import { Component } from '../../index.js';
 // Dark mode toggle component
 export class DarkModeToggle extends Component {
   constructor(element, initialState, props) {
-    console.log('DarkModeToggle constructor called with:', { element, initialState, props });
     super(element, initialState, props);
-    console.log('After super call, this.props:', this.props);
   }
   
   onCreate() {
-    // Check initial state first
+    // Initialize from current theme
     const currentTheme = document.documentElement.getAttribute('data-theme');
     this.setState({ isDark: currentTheme === 'dark' });
     
@@ -17,8 +15,6 @@ export class DarkModeToggle extends Component {
       if (this.props.toggleDarkMode) {
         const newTheme = this.props.toggleDarkMode();
         this.setState({ isDark: newTheme === 'dark' });
-      } else {
-        console.error('toggleDarkMode prop not provided. Props received:', this.props);
       }
     });
   }

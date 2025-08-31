@@ -1,19 +1,6 @@
 import { Router } from '../../index.js';
 import { HomePage } from '../pages/HomePage.js';
-import { TodoPage } from '../pages/TodoPage.js';
-import { CounterPage } from '../pages/CounterPage.js';
-import { FetchPage } from '../pages/FetchPage.js';
-import { DomPage } from '../pages/DomPage.js';
-import { UsersPage } from '../pages/UsersPage.js';
-import { AboutPage } from '../pages/AboutPage.js';
-import { ErrorPage } from '../pages/ErrorPage.js';
-import { ProtectedPage } from '../pages/ProtectedPage.js';
-import { LoadingDemoPage } from '../pages/LoadingDemoPage.js';
 import { NotFound } from '../pages/NotFound.js';
-import { CompositionPage } from '../pages/CompositionPage.js';
-import { MutationsPage } from '../pages/MutationsPage.js';
-import { DesignSystemPage } from '../pages/DesignSystemPage.js';
-import { FormsPage } from '../pages/FormsPage.js';
 
 // Router Setup with Advanced Guards (hash mode for static hosting)
 const router = new Router({
@@ -22,22 +9,22 @@ const router = new Router({
   fallback: NotFound
 });
 
-// Configure routes
+// Configure routes: keep Home eager; lazy-load others
 router
   .route('/', HomePage)
-  .route('/todo', TodoPage)
-  .route('/counter', CounterPage)
-  .route('/fetch', FetchPage)
-  .route('/dom', DomPage)
-  .route('/users', UsersPage)
+  .route('/todo', () => import('../pages/TodoPage.js').then(m => m.TodoPage))
+  .route('/counter', () => import('../pages/CounterPage.js').then(m => m.CounterPage))
+  .route('/fetch', () => import('../pages/FetchPage.js').then(m => m.FetchPage))
+  .route('/dom', () => import('../pages/DomPage.js').then(m => m.DomPage))
+  .route('/users', () => import('../pages/UsersPage.js').then(m => m.UsersPage))
   .route('/users/:id', () => import('../users.js'))
-  .route('/error', ErrorPage)
-  .route('/about', AboutPage)
-  .route('/protected', ProtectedPage)
-  .route('/loading-demo', LoadingDemoPage)
-  .route('/composition', CompositionPage)
-  .route('/mutations', MutationsPage)
-  .route('/design', DesignSystemPage)
-  .route('/forms', FormsPage);
+  .route('/error', () => import('../pages/ErrorPage.js').then(m => m.ErrorPage))
+  .route('/about', () => import('../pages/AboutPage.js').then(m => m.AboutPage))
+  .route('/protected', () => import('../pages/ProtectedPage.js').then(m => m.ProtectedPage))
+  .route('/loading-demo', () => import('../pages/LoadingDemoPage.js').then(m => m.LoadingDemoPage))
+  .route('/composition', () => import('../pages/CompositionPage.js').then(m => m.CompositionPage))
+  .route('/mutations', () => import('../pages/MutationsPage.js').then(m => m.MutationsPage))
+  .route('/design', () => import('../pages/DesignSystemPage.js').then(m => m.DesignSystemPage))
+  .route('/forms', () => import('../pages/FormsPage.js').then(m => m.FormsPage));
 
 export { router };

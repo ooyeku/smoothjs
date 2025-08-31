@@ -2,25 +2,69 @@ import { hash } from '../utils/hash.js';
 import { VelvetUtilities } from './utilities.js';
 import { defaultTheme } from './theme.js';
 
+// Global cache and buffer for Velvet across all instances
+const V_GLOBAL = (() => {
+  const g = (typeof window !== 'undefined' ? window : globalThis);
+  g.__SMOOTH_VELVET__ = g.__SMOOTH_VELVET__ || {
+    cache: new Map(), // className -> css
+    buf: [],
+    scheduled: false,
+    styleEl: null,
+    sheet: null,
+  };
+  return g.__SMOOTH_VELVET__;
+})();
+
+function _flushCSS() {
+  if (!V_GLOBAL.buf.length) return;
+  try {
+    const style = V_GLOBAL.styleEl || document.getElementById('velvet-styles');
+    if (style) {
+      // Append as one chunk to minimize operations
+      style.textContent += V_GLOBAL.buf.join('');
+    }
+  } catch {}
+  V_GLOBAL.buf.length = 0;
+  V_GLOBAL.scheduled = false;
+}
+
+function _enqueueCSS(css) {
+  if (!css) return;
+  V_GLOBAL.buf.push(css);
+  if (!V_GLOBAL.scheduled) {
+    V_GLOBAL.scheduled = true;
+    Promise.resolve().then(_flushCSS);
+  }
+}
+
 export class Velvet {
   constructor(component) {
     this.component = component;
     this.styles = new Map();
-    this.styleSheet = null;
-    this.uniqueId = 0;
     this.utilities = new VelvetUtilities(defaultTheme).utilities;
-    
-    if (!document.getElementById('velvet-styles')) {
-      this.initStyleSheet();
+    // Ensure a single global style element exists and is cached
+    if (typeof document !== 'undefined') {
+      if (!V_GLOBAL.styleEl) {
+        const existing = document.getElementById('velvet-styles');
+        if (existing) {
+          V_GLOBAL.styleEl = existing;
+          V_GLOBAL.sheet = existing.sheet || null;
+        } else {
+          this.initStyleSheet();
+        }
+      }
     }
   }
   
   initStyleSheet() {
+    if (typeof document === 'undefined') return;
+    if (V_GLOBAL.styleEl) return;
     const style = document.createElement('style');
     style.id = 'velvet-styles';
     style.textContent = this.getBaseStyles();
     document.head.appendChild(style);
-    this.styleSheet = style.sheet;
+    V_GLOBAL.styleEl = style;
+    V_GLOBAL.sheet = style.sheet || null;
   }
   
   getBaseStyles() {
@@ -87,8 +131,21 @@ export class Velvet {
     `;
   }
   
+  // Normalize style object to stable shape for deterministic hashing
+  _normalize(obj) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+    const keys = Object.keys(obj).sort();
+    const out = {};
+    for (const k of keys) {
+      const v = obj[k];
+      out[k] = (v && typeof v === 'object' && !Array.isArray(v)) ? this._normalize(v) : v;
+    }
+    return out;
+  }
+
   generateClassName(styleObj) {
-    const styleHash = hash(JSON.stringify(styleObj));
+    const normalized = this._normalize(styleObj || {});
+    const styleHash = hash(JSON.stringify(normalized));
     return `velvet-${styleHash}`;
   }
   
@@ -96,15 +153,12 @@ export class Velvet {
     if (typeof styleDefinition === 'string') {
       return styleDefinition;
     }
-    
     const className = this.generateClassName(styleDefinition);
-    
-    if (!this.styles.has(className)) {
+    if (!V_GLOBAL.cache.has(className)) {
       const css = this.processStyles(className, styleDefinition);
+      V_GLOBAL.cache.set(className, css);
       this.injectStyles(css);
-      this.styles.set(className, css);
     }
-    
     return className;
   }
   
@@ -171,18 +225,10 @@ export class Velvet {
   }
   
   injectStyles(css) {
-    if (this.styleSheet) {
-      try {
-        const index = this.styleSheet.cssRules.length;
-        this.styleSheet.insertRule(css, index);
-      } catch (e) {
-        // Fallback for complex rules
-        const styleEl = document.getElementById('velvet-styles');
-        if (styleEl) {
-          styleEl.textContent += css;
-        }
-      }
-    }
+    if (typeof document === 'undefined') return;
+    if (!css) return;
+    // Batch CSS appends to a single style tag to minimize DOM churn
+    _enqueueCSS(css);
   }
   
   // Utility methods for common patterns
