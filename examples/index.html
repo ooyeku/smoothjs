@@ -29,9 +29,9 @@
     [data-theme="dark"] {
       --bg: #0b1220; /* slightly darker for stronger contrast */
       --card: #0f1a2b; /* deeper slate for cards */
-      --muted: #cfd8e3; /* brighter muted for readability */
+      --muted: #ffffff; /* white muted text */
       --border: #3b4b63; /* clearer border contrast */
-      color: #f0f3f8; /* brighter body text for clarity */
+      color: #ffffff; /* white body text */
     }
     header {
       background: var(--card);
@@ -51,8 +51,38 @@
     .brand { font-weight: 700; color: inherit; margin-right: .5rem; }
     main .card { background: var(--card); border-radius: 12px; padding: 1rem 1.25rem; box-shadow: 0 10px 20px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.08); border: 1px solid var(--border); color: inherit; }
     /* Ensure strong text contrast inside cards in dark mode */
-    [data-theme="dark"] main .card { color: #f0f3f8; }
-    [data-theme="dark"] main .card .muted { color: var(--muted); }
+    [data-theme="dark"] main .card { color: #ffffff; }
+    [data-theme="dark"] main .card .muted { color: #ffffff; }
+    [data-theme="dark"] main .card h1,
+    [data-theme="dark"] main .card h2,
+    [data-theme="dark"] main .card h3,
+    [data-theme="dark"] main .card h4,
+    [data-theme="dark"] main .card h5,
+    [data-theme="dark"] main .card h6,
+    [data-theme="dark"] main .card p,
+    [data-theme="dark"] main .card span,
+    [data-theme="dark"] main .card div { color: #ffffff; }
+
+    /* Ensure all text elements have good contrast in dark mode */
+    [data-theme="dark"] main .card * {
+      color: inherit;
+    }
+
+    /* Override any hardcoded dark colors that might be too dark */
+    [data-theme="dark"] main .card [style*="color:#"],
+    [data-theme="dark"] main .card [style*="color: #"] {
+      color: #ffffff !important;
+    }
+
+    /* Ensure any dark text is visible in dark mode */
+    [data-theme="dark"] [style*="color:#000"],
+    [data-theme="dark"] [style*="color:#111"],
+    [data-theme="dark"] [style*="color:#222"],
+    [data-theme="dark"] [style*="color:#333"],
+    [data-theme="dark"] [style*="color:#1f2937"],
+    [data-theme="dark"] [style*="color:#374151"] {
+      color: #ffffff !important;
+    }
     /* Content links */
     main a { color: var(--primary); text-decoration: none; }
     main a:hover { text-decoration: underline; }
@@ -60,7 +90,43 @@
     [data-theme="dark"] main a:hover { color: #c7ebff; }
     footer { text-align: center; color: var(--muted); padding: 2rem 1rem; }
     .muted { color: var(--muted); }
-    [data-theme="dark"] .muted { color: var(--muted); }
+    [data-theme="dark"] .muted { color: #ffffff; }
+
+    /* Ensure footer text is white in dark mode */
+    [data-theme="dark"] footer { color: #ffffff; }
+
+    /* Ensure header text is white in dark mode */
+    [data-theme="dark"] header,
+    [data-theme="dark"] header * { color: #ffffff; }
+
+    /* Ensure brand text is white in dark mode */
+    [data-theme="dark"] .brand { color: #ffffff; }
+
+    /* Make ALL text white in dark mode for maximum readability */
+    [data-theme="dark"] * {
+      color: inherit;
+    }
+
+    [data-theme="dark"] h1,
+    [data-theme="dark"] h2,
+    [data-theme="dark"] h3,
+    [data-theme="dark"] h4,
+    [data-theme="dark"] h5,
+    [data-theme="dark"] h6,
+    [data-theme="dark"] p,
+    [data-theme="dark"] span,
+    [data-theme="dark"] div,
+    [data-theme="dark"] a,
+    [data-theme="dark"] li,
+    [data-theme="dark"] td,
+    [data-theme="dark"] th,
+    [data-theme="dark"] label,
+    [data-theme="dark"] button,
+    [data-theme="dark"] input,
+    [data-theme="dark"] textarea,
+    [data-theme="dark"] select {
+      color: #ffffff !important;
+    }
     .btn { background: var(--primary); color: #fff; border: 0; padding: .6rem 1rem; border-radius: 8px; cursor: pointer; box-shadow: 0 6px 14px rgba(14,165,233,.24); transition: transform .15s ease, box-shadow .2s ease; }
     .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 18px rgba(14,165,233,.28); }
     .btn:disabled { opacity: .6; cursor: default; box-shadow: none; }

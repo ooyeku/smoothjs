@@ -154,11 +154,19 @@ export class SmoothRouter {
 
     // update URL
     if (navOptions.replace) {
-      if (this.options.mode === 'hash') window.location.replace(`#${to}`);
-      else if (window.location.pathname !== to) history.replaceState(null, '', to);
+      if (this.options.mode === 'hash') {
+        const target = `#${to}`;
+        if (window.location.hash !== target) window.location.hash = target; // avoid location.replace to prevent jsdom navigation
+      } else if (window.location.pathname !== to) {
+        history.replaceState(null, '', to);
+      }
     } else {
-      if (this.options.mode === 'hash') window.location.hash = `#${to}`;
-      else if (window.location.pathname !== to) history.pushState(null, '', to);
+      if (this.options.mode === 'hash') {
+        const target = `#${to}`;
+        if (window.location.hash !== target) window.location.hash = target;
+      } else if (window.location.pathname !== to) {
+        history.pushState(null, '', to);
+      }
     }
 
     // notify subscribers for active links

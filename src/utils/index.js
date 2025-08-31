@@ -60,9 +60,13 @@ export const utils = {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
     }
+    // Use DOM to escape core HTML entities, then ensure quotes are encoded too
     const div = document.createElement('div');
     div.textContent = text;
-    return div.innerHTML;
+    let out = div.innerHTML;
+    // JSDOM/browser innerHTML does not encode quotes; normalize here
+    out = out.replace(/\"/g, '&quot;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return out;
   },
   
   formatters: {
