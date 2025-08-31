@@ -11,6 +11,42 @@ export class FallbackStyling {
     };
   }
 
+  // Theme toggle functionality
+  toggleDarkMode() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    html.setAttribute('data-theme', newTheme);
+    
+    // Store preference in localStorage
+    localStorage.setItem('theme', newTheme);
+    
+    // Dispatch custom event for other components to listen to
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
+    
+    return newTheme;
+  }
+
+  // Get current theme
+  getCurrentTheme() {
+    return document.documentElement.getAttribute('data-theme') || 'light';
+  }
+
+  // Initialize theme from localStorage
+  initTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else {
+      // Check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = prefersDark ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+    }
+  }
+
   // Container styles
   container(size = 'lg') {
     const sizes = {

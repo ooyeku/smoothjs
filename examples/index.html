@@ -194,6 +194,33 @@
     [data-theme="dark"] .notice { background:#152238; border-color:#3b4b63; color:#ffd166; }
     .ok { color:#059669; }
     .error { color:#ef4444; }
+    
+    /* Theme toggle button styles */
+    #toggle-host button {
+      background: var(--card) !important;
+      color: var(--muted) !important;
+      border: 1px solid var(--border) !important;
+      transition: all 200ms ease;
+    }
+    
+    #toggle-host button:hover {
+      background: var(--primary) !important;
+      color: white !important;
+      border-color: var(--primary) !important;
+      transform: scale(1.05);
+    }
+    
+    [data-theme="dark"] #toggle-host button {
+      background: var(--card) !important;
+      color: var(--muted) !important;
+      border-color: var(--border) !important;
+    }
+    
+    [data-theme="dark"] #toggle-host button:hover {
+      background: var(--primary) !important;
+      color: white !important;
+      border-color: var(--primary) !important;
+    }
   </style>
 </head>
 <body>

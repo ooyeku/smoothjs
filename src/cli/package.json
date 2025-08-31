@@ -1,0 +1,44 @@
+{
+  "name": "smoothjs-cli",
+  "version": "1.0.0",
+  "description": "CLI tools for SmoothJS project management and structure enforcement",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "smoothjs": "./index.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "smoothjs",
+    "cli",
+    "scaffolding",
+    "project-structure",
+    "validation",
+    "best-practices"
+  ],
+  "author": "SmoothJS Team",
+  "license": "MIT",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smoothjs/smoothjs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/smoothjs/smoothjs/issues"
+  },
+  "homepage": "https://github.com/smoothjs/smoothjs#readme"
+}

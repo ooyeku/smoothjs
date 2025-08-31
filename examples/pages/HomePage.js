@@ -15,17 +15,16 @@ export class HomePage extends Component {
       
       <div style="display: grid; gap: 1rem; grid-template-columns: repeat(1, 1fr);">
         ${[
-          { href: '#/todo', title: 'Todo', desc: 'Component, local store, events, input focus preservation' },
-          { href: '#/counter', title: 'Advanced Counter', desc: 'Multi-store state management with complex selectors' },
-          { href: '#/fetch', title: 'Query Cache', desc: 'Advanced network request management with caching' },
-          { href: '#/dom', title: 'DOM Utilities', desc: 'createElement, $, $$ utilities, dynamic DOM' },
-          { href: '#/users', title: 'Users', desc: 'Nested & dynamic routes with lazy loaded detail', attrs: 'data-router-link data-to="/users"' },
-          { href: '#/protected', title: 'Protected Route', desc: 'Navigation guards with authentication checks' },
+          { href: '#/todo', title: 'Todo App', desc: 'Local state management with createStore' },
+          { href: '#/counter', title: 'Counter', desc: 'Advanced global state with selectors' },
+          { href: '#/fetch', title: 'Data Fetching', desc: 'Query caching and network management' },
+          { href: '#/dom', title: 'DOM Manipulation', desc: 'Direct DOM access and utilities' },
+          { href: '#/users', title: 'User Management', desc: 'Dynamic routing with parameters' },
           { href: '#/loading-demo', title: 'Loading Demo', desc: 'Navigation guards with async validation' },
           { href: '#/error', title: 'Error Boundaries', desc: 'Error boundary fallback demo' },
           { href: '#/about', title: 'About', desc: 'Utilities, formatters, and version info' }
         ].map(item => this.html`
-          <a href="${item.href}" ${item.attrs || ''} style="display: block; padding: 1.5rem; background: var(--card); border-radius: 12px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); text-decoration: none; color: inherit; transition: all 250ms ease; border: 1px solid var(--border);">
+          <a href="${item.href}" style="display: block; padding: 1.5rem; background: var(--card); border-radius: 12px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); text-decoration: none; color: inherit; transition: all 250ms ease; border: 1px solid var(--border);">
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
               <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">${item.title}</h3>
             </div>
