@@ -41,7 +41,7 @@ export class Component<S = any, P = any> {
 }
 
 export interface RouterBeforeEach {
-  (to: string, from: string | null): boolean | void | Promise<boolean | void>;
+  (to: string, from: string | null): boolean | void | string | Promise<boolean | void | string>;
 }
 
 export interface RouterOptions {
@@ -147,9 +147,32 @@ export interface QueryClient {
   getData<T = any>(key: string): T | undefined;
   setData<T = any>(key: string, updater: T | ((prev: T | undefined) => T)): T;
   subscribe<T = any>(key: string, listener: (snapshot: QuerySnapshot<T>) => void): () => void;
-  fetch<T = any>(key: string, fetcher?: () => Promise<T>, options?: { staleTime?: number; force?: boolean }): Promise<T>;
+  fetch<T = any>(
+    key: string,
+    fetcher?: () => Promise<T>,
+    options?: {
+      staleTime?: number;
+      force?: boolean;
+      cacheTime?: number;
+      tags?: string[];
+      swr?: boolean;
+      refetchOnWindowFocus?: boolean;
+      refetchOnReconnect?: boolean;
+    }
+  ): Promise<T>;
   refetch<T = any>(key: string): Promise<T>;
   invalidate(key: string): void;
+  invalidateTag(tag: string): void;
+  mutate<T = any, R = any>(
+    key: string,
+    mutationFn: () => Promise<R>,
+    options?: {
+      optimisticData?: T | ((prev: T | undefined) => T);
+      rollbackOnError?: boolean;
+      invalidateKeys?: string[];
+      invalidateTags?: string[];
+    }
+  ): Promise<T | R>;
   remove(key: string): void;
 }
 export const Query: QueryClient;

@@ -41,7 +41,7 @@ Below is a concise evaluation of your library’s current state, followed by a p
   - Streamed HTML and islands for large pages.
   - Outcome: Faster TTFB/LCP on content-heavy routes.
 
-### Phase 3: Router and data integration
+### Phase 3: Router and data integration — Completed (see examples/pages/MutationsPage.js, examples/pages/FetchPage.js [SWR/focus], tests/router.guard.test.js, tests/query.mutation.test.js, tests/router.test.js [nested/params])
 - Router upgrades
   - Nested routes/layouts, dynamic params, link component, active class handling, route guards with redirect, lazy-loaded routes.
   - Outcome: Real-world SPA routing patterns out of the box.

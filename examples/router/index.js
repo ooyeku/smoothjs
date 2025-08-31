@@ -11,6 +11,7 @@ import { ProtectedPage } from '../pages/ProtectedPage.js';
 import { LoadingDemoPage } from '../pages/LoadingDemoPage.js';
 import { NotFound } from '../pages/NotFound.js';
 import { CompositionPage } from '../pages/CompositionPage.js';
+import { MutationsPage } from '../pages/MutationsPage.js';
 
 // Router Setup with Advanced Guards (hash mode for static hosting)
 const router = new Router({
@@ -32,6 +33,7 @@ router
   .route('/about', AboutPage)
   .route('/protected', ProtectedPage)
   .route('/loading-demo', LoadingDemoPage)
-  .route('/composition', CompositionPage);
+  .route('/composition', CompositionPage)
+  .route('/mutations', MutationsPage);
 
 export { router };

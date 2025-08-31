@@ -51,7 +51,7 @@ export class SmoothRouter {
     const isActive = this._isActive(to, { exact });
     const cls = isActive ? ` class="${activeClass}"` : '';
     const extra = attrs ? ' ' + attrs.trim() : '';
-    return `<a href="${href}" data-router-link data-to="${to}" data-exact="${exact ? '1' : '0'}"${cls}${extra}>${label}</a>`;
+    return `<a href="${href}" data-router-link data-to="${to}" data-exact="${exact ? '1' : '0'}" data-active-class="${activeClass}"${cls}${extra}>${label}</a>`;
   }
 
   _isActive(to, { exact = false } = {}) {
@@ -128,6 +128,10 @@ export class SmoothRouter {
     if (this.options.beforeEach) {
       const res = await this.options.beforeEach(to, from);
       if (res === false) return; // navigation canceled
+      if (typeof res === 'string' && res && res !== to) {
+        // redirect path returned by guard
+        return this.navigate(res, { replace: true });
+      }
     }
 
     // Unmount previously mounted chain
@@ -270,7 +274,7 @@ export class SmoothRouter {
       const to = a.getAttribute('data-to') || '';
       const exact = a.getAttribute('data-exact') === '1';
       const isActive = this._isActive(to, { exact });
-      const activeClass = 'active';
+      const activeClass = a.getAttribute('data-active-class') || 'active';
       if (isActive) a.classList.add(activeClass); else a.classList.remove(activeClass);
       if (isActive) a.setAttribute('aria-current', exact ? 'page' : 'true'); else a.removeAttribute('aria-current');
     });

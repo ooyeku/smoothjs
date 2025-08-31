@@ -5,16 +5,60 @@ const now = () => Date.now();
 
 class QueryClientImpl {
   constructor() {
-    this.store = new Map(); // key -> { data, error, updatedAt, subscribers:Set, inflight:Promise|null, fetcher:Function|null, staleTime:number }
+    this.store = new Map(); // key -> { data, error, updatedAt, subscribers:Set, inflight:Promise|null, fetcher:Function|null, staleTime:number, tags:Set<string>, cacheTime:number, gcTimer:any, refetchOnWindowFocus:boolean, refetchOnReconnect:boolean }
+    this._bound = false;
+    if (typeof window !== 'undefined' && !this._bound) {
+      const focus = () => {
+        this.store.forEach((e, key) => {
+          if (e.refetchOnWindowFocus && this._isStale(e) && !e.inflight) {
+            try { this.refetch(key); } catch {}
+          }
+        });
+      };
+      const online = () => {
+        this.store.forEach((e, key) => {
+          if (e.refetchOnReconnect && this._isStale(e) && !e.inflight) {
+            try { this.refetch(key); } catch {}
+          }
+        });
+      };
+      try { window.addEventListener('focus', focus); } catch {}
+      try { window.addEventListener('online', online); } catch {}
+      this._bound = true;
+    }
   }
 
   _entry(key) {
     let e = this.store.get(key);
     if (!e) {
-      e = { data: undefined, error: null, updatedAt: 0, subscribers: new Set(), inflight: null, fetcher: null, staleTime: 0 };
+      e = { data: undefined, error: null, updatedAt: 0, subscribers: new Set(), inflight: null, fetcher: null, staleTime: 0, tags: new Set(), cacheTime: 0, gcTimer: null, refetchOnWindowFocus: false, refetchOnReconnect: false };
       this.store.set(key, e);
     }
     return e;
+  }
+
+  _isStale(e) {
+    if (!e) return true;
+    if (!e.updatedAt) return true;
+    return (now() - e.updatedAt) > (e.staleTime || 0);
+  }
+
+  _scheduleGC(key, e) {
+    if (!e) e = this.store.get(key);
+    if (!e) return;
+    if (e.gcTimer) { try { clearTimeout(e.gcTimer); } catch {} e.gcTimer = null; }
+    if (!e.cacheTime || e.cacheTime <= 0) return;
+    // schedule only if there are no subscribers
+    if (e.subscribers && e.subscribers.size > 0) return;
+    try {
+      e.gcTimer = setTimeout(() => {
+        // remove only if still no subscribers
+        const cur = this.store.get(key);
+        if (cur && cur.subscribers.size === 0) {
+          this.store.delete(key);
+        }
+      }, e.cacheTime);
+    } catch {}
   }
 
   getData(key) {
@@ -42,27 +86,44 @@ class QueryClientImpl {
     };
   }
 
-  async fetch(key, fetcher, { staleTime = 0, force = false } = {}) {
+  async fetch(key, fetcher, { staleTime = 0, force = false, cacheTime = 0, tags = [], swr = false, refetchOnWindowFocus = false, refetchOnReconnect = false } = {}) {
     const e = this._entry(key);
     if (fetcher && typeof fetcher === 'function') e.fetcher = fetcher;
     if (!e.fetcher) throw new Error(`No fetcher provided for query: ${key}`);
     e.staleTime = typeof staleTime === 'number' ? staleTime : 0;
+    e.cacheTime = typeof cacheTime === 'number' ? cacheTime : 0;
+    e.refetchOnWindowFocus = !!refetchOnWindowFocus;
+    e.refetchOnReconnect = !!refetchOnReconnect;
+    if (Array.isArray(tags)) {
+      e.tags = new Set(tags.map(String));
+    }
 
-    const fresh = e.updatedAt && (now() - e.updatedAt) <= e.staleTime;
+    const fresh = e.updatedAt && (now() - e.updatedAt) < e.staleTime;
+
+    if (swr && e.data !== undefined && !force) {
+      // Return cached value immediately and revalidate in background if stale
+      if (!fresh && !e.inflight) {
+        this.refetch(key).catch(() => {});
+      }
+      this._scheduleGC(key, e);
+      return e.data;
+    }
+
     if (!force && fresh && e.data !== undefined) {
+      this._scheduleGC(key, e);
       return e.data;
     }
 
     if (e.inflight) return e.inflight;
 
-    e.inflight = Promise.resolve()
-      .then(() => e.fetcher())
+    e.inflight = Promise.resolve(e.fetcher())
       .then((data) => {
         e.inflight = null;
         e.data = data;
         e.error = null;
         e.updatedAt = now();
         this._emit(key);
+        this._scheduleGC(key, e);
         return data;
       })
       .catch((err) => {
@@ -90,8 +151,57 @@ class QueryClientImpl {
   remove(key) {
     const e = this.store.get(key);
     if (e) {
+      if (e.gcTimer) { try { clearTimeout(e.gcTimer); } catch {} e.gcTimer = null; }
       e.subscribers.clear();
       this.store.delete(key);
+    }
+  }
+
+  invalidateTag(tag) {
+    const t = String(tag);
+    this.store.forEach((e, key) => {
+      if (e.tags && e.tags.has(t)) {
+        e.updatedAt = 0;
+        this._emit(key);
+      }
+    });
+  }
+
+  async mutate(key, mutationFn, { optimisticData, rollbackOnError = true, invalidateKeys = [], invalidateTags = [] } = {}) {
+    const k = String(key);
+    const e = this._entry(k);
+    const prev = e.data;
+    let appliedOptimistic = false;
+    try {
+      if (typeof optimisticData !== 'undefined') {
+        e.data = typeof optimisticData === 'function' ? optimisticData(e.data) : optimisticData;
+        e.error = null;
+        e.updatedAt = now();
+        this._emit(k);
+        appliedOptimistic = true;
+      }
+      const result = await mutationFn();
+      if (typeof result !== 'undefined') {
+        e.data = result;
+        e.error = null;
+        e.updatedAt = now();
+        this._emit(k);
+      }
+      // Invalidate targets
+      for (const kk of invalidateKeys) { this.invalidate(String(kk)); }
+      for (const tg of invalidateTags) { this.invalidateTag(String(tg)); }
+      return e.data;
+    } catch (err) {
+      if (rollbackOnError && appliedOptimistic) {
+        e.data = prev;
+        e.error = err;
+        e.updatedAt = now();
+        this._emit(k);
+      } else {
+        e.error = err;
+        this._emit(k);
+      }
+      throw err;
     }
   }
 
