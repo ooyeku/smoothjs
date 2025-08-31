@@ -33,14 +33,18 @@ describe('SmoothRouter (hash mode)', () => {
     router.start();
     // Start resolves current hash; ensure goto '/'
     await Promise.resolve();
+    await new Promise(resolve => setTimeout(resolve, 10)); // Give time for DOM updates
+    expect(root.querySelector('[data-testid="home"]')).toBeTruthy();
     expect(root.querySelector('[data-testid="home"]').textContent).toContain('Home');
 
     await router.navigate('/users');
-    await Promise.resolve();
+    await new Promise(resolve => setTimeout(resolve, 10)); // Give time for DOM updates
+    expect(root.querySelector('[data-testid="users"]')).toBeTruthy();
     expect(root.querySelector('[data-testid="users"]').textContent).toContain('');
 
     await router.navigate('/users/2');
-    await Promise.resolve();
+    await new Promise(resolve => setTimeout(resolve, 10)); // Give time for DOM updates
+    expect(root.querySelector('[data-testid="detail"]')).toBeTruthy();
     expect(root.querySelector('[data-testid="detail"]').textContent).toContain('2');
   });
 
@@ -70,7 +74,8 @@ describe('SmoothRouter (hash mode)', () => {
     link.setAttribute('data-to', '/users');
     document.body.appendChild(link);
     link.click();
-    await Promise.resolve();
+    await new Promise(resolve => setTimeout(resolve, 10)); // Give time for DOM updates
+    expect(root.querySelector('[data-testid="users"]')).toBeTruthy();
     expect(root.querySelector('[data-testid="users"]').textContent).toBeDefined();
   });
 });
