@@ -66,7 +66,7 @@ Below is a concise evaluation of your library’s current state, followed by a p
   - Dual outputs (ESM + CJS), minified browser bundle with source maps, explicit exports map, and sideEffects hints verified.
   - Outcome: Smooth consumption across environments; improved tree-shaking.
 
-### Phase 6: Testing utilities and accessibility
+### Phase 6: Testing utilities and accessibility — Completed (see src/a11y/index.js, src/testing/index.js, tests/a11y.test.js, tests/testing.utils.test.js, examples/pages/DesignSystemPage.js [modal focus trap], examples/app.js [skip link], examples/pages/ErrorPage.js [announce])
 - Testing helpers
   - Mount/render APIs with snapshot-friendly output, async helpers for queries/mutations, and router/store testing patterns.
   - Outcome: Lower friction for writing confidence-building tests.
@@ -74,7 +74,7 @@ Below is a concise evaluation of your library’s current state, followed by a p
   - Focus traps, ARIA helpers, live region updates, and skip-link patterns.
   - Outcome: Better accessibility defaults and easier compliance.
 
-### Phase 7: Security and forms
+### Phase 7: Security and forms — Completed (see src/security/index.js, src/forms/index.js, tests/security.test.js, tests/forms.test.js, examples/pages/FormsPage.js)
 - Sanitization strategy
   - Pluggable sanitizer for unsafe HTML, documented guidelines for user content.
   - Outcome: Reduced XSS risk with clear, tested contracts.

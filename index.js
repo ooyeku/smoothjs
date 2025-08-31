@@ -14,11 +14,18 @@ import { Query } from './src/data/query.js';
 // DevTools
 import DevTools from './src/devtools/index.js';
 
+// A11y utilities
+import * as A11y from './src/a11y/index.js';
+
 // Velvet Design System
 import * as Velvet from './src/design-system/index.js';
 
 // Testing utilities
 import * as Testing from './src/testing/index.js';
+
+// Security and Forms
+import * as Security from './src/security/index.js';
+import * as Forms from './src/forms/index.js';
 
 const version = '0.0.0';
 
@@ -38,8 +45,11 @@ const SmoothJS = {
   SSR,
   Query,
   DevTools,
+  A11y,
   Velvet,
-  Testing
+  Testing,
+  Security,
+  Forms
 };
 
 // Expose to window for convenience in browsers
@@ -47,5 +57,5 @@ if (typeof window !== 'undefined') {
   window.SmoothJS = SmoothJS;
 }
 
-export { Component, createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, SSR, Query, DevTools, Velvet, Testing };
+export { Component, createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, SSR, Query, DevTools, A11y, Velvet, Testing, Security, Forms };
 export default SmoothJS;

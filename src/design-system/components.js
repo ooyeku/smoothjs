@@ -1,4 +1,5 @@
 import { VelvetComponent } from './VelvetComponent.js';
+import { focusTrap } from '../a11y/index.js';
 
 // Button Component
 export class VButton extends VelvetComponent {
@@ -393,6 +394,40 @@ export class VModal extends VelvetComponent {
     this.on('click', '.close-btn', () => this.close());
   }
   
+  onStateChange(prev, next) {
+    // Manage focus trap based on open state
+    if (next.open && !this._trapCleanup && this.element) {
+      const dlg = this.element.querySelector('[role="dialog"]');
+      if (dlg) this._trapCleanup = focusTrap(dlg);
+    }
+    if (!next.open && this._trapCleanup) {
+      try { this._trapCleanup(); } catch {}
+      this._trapCleanup = null;
+    }
+  }
+
+  onUnmount() {
+    if (this._trapCleanup) {
+      try { this._trapCleanup(); } catch {}
+      this._trapCleanup = null;
+    }
+  }
+  
+  onPropsChange(prev, next) {
+    // also react to external prop changes
+    if (next && typeof next.open !== 'undefined') {
+      const willOpen = !!next.open;
+      if (willOpen && !this._trapCleanup && this.element) {
+        const dlg = this.element.querySelector('[role="dialog"]');
+        if (dlg) this._trapCleanup = focusTrap(dlg);
+      }
+      if (!willOpen && this._trapCleanup) {
+        try { this._trapCleanup(); } catch {}
+        this._trapCleanup = null;
+      }
+    }
+  }
+
   close() {
     if (this.props.onClose) {
       this.props.onClose();
@@ -486,11 +521,11 @@ export class VModal extends VelvetComponent {
     
     return this.html`
       <div class="overlay ${this.vs(overlayStyle)}">
-        <div class="${this.vs(modalStyle)}">
+        <div class="${this.vs(modalStyle)}" role="dialog" aria-modal="true" ${title ? 'aria-labelledby="vmodal-title"' : ''}>
           ${title ? this.html`
             <div class="${this.vs(headerStyle)}">
-              <h2 class="${this.vs(titleStyle)}">${title}</h2>
-              <span class="close-btn ${this.vs(closeStyle)}">×</span>
+              <h2 id="vmodal-title" class="${this.vs(titleStyle)}">${title}</h2>
+              <span class="close-btn ${this.vs(closeStyle)}" aria-label="Close dialog">×</span>
             </div>
           ` : ''}
           <div class="${this.vs(bodyStyle)}">

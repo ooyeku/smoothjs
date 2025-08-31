@@ -180,6 +180,14 @@ export const Query: QueryClient;
 // Velvet: loose typings mapped to runtime object
 export const Velvet: any;
 
+// A11y utilities
+export const A11y: {
+  focusTrap(container: Element | string): () => void;
+  announce(message: any, options?: { politeness?: 'polite' | 'assertive'; timeout?: number }): void;
+  createSkipLink(target?: string, opts?: { text?: string }): Element | null;
+  aria(el: Element | null, attrs?: Record<string, any>): void;
+};
+
 // Testing utilities
 export const Testing: {
   mount<T extends new (...args: any[]) => Component<any, any>>(Comp: T, options?: { props?: ConstructorParameters<T>[2]; state?: any; container?: Element | null }): { instance: InstanceType<T>; container: Element; unmount: () => void };
@@ -187,9 +195,41 @@ export const Testing: {
   fire(target: Element | null, type: string, init?: any): boolean;
   wait(ms?: number): Promise<void>;
   tick(): Promise<void>;
+  waitFor(predicate: () => any, options?: { timeout?: number; interval?: number }): Promise<boolean>;
+  act<T = any>(fnOrPromise: (() => T) | Promise<T>): Promise<T>;
   getByTestId(container: Element, testId: string): Element | null;
   getAllByTestId(container: Element, testId: string): Element[];
 };
+
+// Security utilities
+export const Security: {
+  sanitize(html: any, options?: { allowTags?: string[]; allowAttrs?: Record<string, string[]> }): string;
+  configureSanitizer(fn?: (html: any, options?: any) => string): void;
+};
+
+// Forms helpers
+export namespace Forms {
+  function createForm<TValues extends Record<string, any> = any>(
+    initialValues?: TValues,
+    validators?: Partial<Record<keyof TValues, (value: any, values: TValues) => string | void>>
+  ): {
+    readonly values: TValues;
+    readonly errors: Partial<Record<keyof TValues, string>>;
+    readonly touched: Partial<Record<keyof TValues, boolean>>;
+    readonly dirty: boolean;
+    readonly submitted: boolean;
+    setField(name: keyof TValues, value: any): void;
+    setValues(patch: Partial<TValues> | ((prev: TValues) => Partial<TValues>)): void;
+    validate(): boolean;
+    reset(nextInitial?: TValues): void;
+    handleChange(e: any): void;
+    handleBlur(e: any): void;
+    handleSubmit(
+      onValid?: (values: TValues) => any,
+      onInvalid?: (errors: Partial<Record<keyof TValues, string>>, values: TValues) => any
+    ): (e?: any) => Promise<any>;
+  };
+}
 
 // DevTools
 export const DevTools: {
@@ -215,7 +255,10 @@ declare const SmoothJS: {
   SSR: typeof SSR;
   Query: typeof Query;
   DevTools: typeof DevTools;
+  A11y: typeof A11y;
   Velvet: typeof Velvet;
   Testing: typeof Testing;
+  Security: typeof Security;
+  Forms: typeof Forms;
 };
 export default SmoothJS;

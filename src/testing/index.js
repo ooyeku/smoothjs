@@ -36,14 +36,43 @@ export const fire = (target, type, init = {}) => {
 export const wait = (ms = 0) => new Promise(resolve => setTimeout(resolve, ms));
 export const tick = () => Promise.resolve();
 
+export const waitFor = (predicate, { timeout = 1000, interval = 10 } = {}) => {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const check = () => {
+      try {
+        if (predicate && predicate()) return resolve(true);
+      } catch {}
+      if (Date.now() - start >= timeout) return reject(new Error('waitFor: timeout'));
+      setTimeout(check, interval);
+    };
+    check();
+  });
+};
+
+export const act = async (run) => {
+  let result;
+  if (typeof run === 'function') result = run(); else result = run;
+  // Await the result if it's a promise
+  if (result && typeof result.then === 'function') {
+    await result;
+  }
+  // Let microtasks and a macrotask flush
+  await Promise.resolve();
+  await new Promise(r => setTimeout(r, 0));
+  return result;
+};
+
 export const getByTestId = (container, testId) => {
   if (!container || !testId) return null;
-  return container.querySelector(`[data-testid="${CSS.escape ? CSS.escape(testId) : testId}"]`);
+  const esc = (typeof CSS !== 'undefined' && CSS && typeof CSS.escape === 'function') ? CSS.escape : (s) => s;
+  return container.querySelector(`[data-testid="${esc(testId)}"]`);
 };
 
 export const getAllByTestId = (container, testId) => {
   if (!container || !testId) return [];
-  return Array.from(container.querySelectorAll(`[data-testid="${CSS.escape ? CSS.escape(testId) : testId}"]`));
+  const esc = (typeof CSS !== 'undefined' && CSS && typeof CSS.escape === 'function') ? CSS.escape : (s) => s;
+  return Array.from(container.querySelectorAll(`[data-testid="${esc(testId)}"]`));
 };
 
-export default { mount, render, fire, wait, tick, getByTestId, getAllByTestId };
+export default { mount, render, fire, wait, tick, waitFor, act, getByTestId, getAllByTestId };

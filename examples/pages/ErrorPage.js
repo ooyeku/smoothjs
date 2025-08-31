@@ -1,4 +1,4 @@
-import { Component, utils } from '../../index.js';
+import { Component, utils, A11y } from '../../index.js';
 
 // Error Demo Page with error boundary fallback
 export class ErrorPage extends Component {
@@ -73,6 +73,8 @@ export class ErrorPage extends Component {
     const errorType = err.message.includes('Async') ? 'Async Error' :
                      err.message.includes('Network') ? 'Network Error' :
                      err.message.includes('Validation') ? 'Validation Error' : 'Runtime Error';
+
+    try { A11y && A11y.announce && A11y.announce(`Error: ${errorType} - ${err.message || ''}`, { politeness: 'assertive', timeout: 0 }); } catch {}
 
     return this.html`
       <div style="max-width: 768px; margin: 0 auto; padding: 0.75rem 1rem;">

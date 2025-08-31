@@ -1,4 +1,4 @@
-import { Component, createElement, $, $$, version, DevTools } from '../index.js';
+import { Component, createElement, $, $$, version, DevTools, A11y } from '../index.js';
 import { StatCard } from './components/StatCard.js';
 // Enable minimal DevTools overlay (no-op in tests and only shows on errors)
 try { if (DevTools && typeof DevTools.enableOverlay === 'function') DevTools.enableOverlay(); } catch {}
@@ -40,6 +40,9 @@ if (savedTheme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('theme', theme);
 }
+
+// Add a skip link for keyboard users
+try { A11y && typeof A11y.createSkipLink === 'function' && A11y.createSkipLink('#app'); } catch {}
 
 // Wait for DOM to be ready before starting router and mounting components
 function startApp() {
