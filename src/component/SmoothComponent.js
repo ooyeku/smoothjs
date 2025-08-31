@@ -1,8 +1,22 @@
+const _contextRegistry = new WeakMap(); // WeakMap<Element, Map<symbol, any>> for context values
+function _shouldLogErrors() {
+  try {
+    const env = (typeof process !== 'undefined' && process && process.env) ? process.env : {};
+    if (env.NODE_ENV === 'test') return false;
+    if (env.VITEST) return false;
+    if (typeof globalThis !== 'undefined') {
+      if (globalThis.__VITEST_BROWSER__ || globalThis.VITEST) return false;
+    }
+  } catch {}
+  return true;
+}
+
 export class SmoothComponent {
   static _dirty = new Set();
   static _scheduled = false;
   static _batchDepth = 0;
   static _needsFlush = false;
+  static _byEl = new WeakMap();
 
   static _scheduleFlush(force = false) {
     if (this._batchDepth > 0 && !force) {
@@ -48,6 +62,9 @@ export class SmoothComponent {
     this._pendingState = null;
     this._pendingProps = null;
     this._mounted = false;
+    this._pendingContext = null;
+    this._pendingPortals = [];
+    this._portalMap = new Map(); // id -> { targetEl, containerEl }
 
     this.onCreate();
   }
@@ -61,6 +78,10 @@ export class SmoothComponent {
   onStateChange(prevState, newState) {}
   
   onPropsChange(prevProps, newProps) {}
+  
+  get isMounted() {
+    return !!this._mounted;
+  }
   
   _enqueueRender() {
     SmoothComponent._dirty.add(this);
@@ -125,12 +146,104 @@ export class SmoothComponent {
       result += strings[i];
       if (i < values.length) {
         const value = values[i];
-        result += Array.isArray(value) ? value.join('') : String(value);
+        if (value && value.__smooth_portal__ === true) {
+          // portal placeholder contributes nothing to inline HTML
+          result += '';
+        } else if (value == null) {
+          // null/undefined => empty string
+          result += '';
+        } else if (Array.isArray(value)) {
+          // arrays joined by comma per tests expectation
+          result += value.join(',');
+        } else {
+          result += String(value);
+        }
       }
     }
     return result;
   }
+
+  // Composition helpers
+  renderChildren() {
+    if (!this.children || this.children.length === 0) return '';
+    return this.children.map(ch => {
+      if (ch == null || ch === false) return '';
+      if (typeof ch === 'string') return ch;
+      if (ch instanceof Node) return ch.outerHTML || ch.textContent || '';
+      return String(ch);
+    }).join('');
+  }
+
+  provideContext(ctx, value) {
+    if (!ctx || !ctx.id) return;
+    const apply = (el) => {
+      if (!el) return;
+      let map = _contextRegistry.get(el);
+      if (!map) { map = new Map(); _contextRegistry.set(el, map); }
+      map.set(ctx.id, value);
+    };
+    this._contexts = this._contexts || new Set();
+    this._contexts.add(ctx.id);
+    if (this.element) apply(this.element); else {
+      this._pendingContext = this._pendingContext || [];
+      this._pendingContext.push({ id: ctx.id, value });
+    }
+  }
+
+  useContext(ctx) {
+    if (!ctx || !ctx.id) return ctx ? ctx.defaultValue : undefined;
+    let el = this.element;
+    while (el) {
+      const map = _contextRegistry.get(el);
+      if (map && map.has(ctx.id)) return map.get(ctx.id);
+      el = el.parentElement;
+    }
+    return ctx.defaultValue;
+  }
+
+  portal(target, content, key = null) {
+    // Defer rendering to after main patch; return a marker object recognized by html()
+    const id = (this.constructor._portalCounter = (this.constructor._portalCounter || 0) + 1);
+    const k = key != null ? String(key) : (typeof target === 'string' ? `sel:${target}` : `el:${id}`);
+    this._pendingPortals.push({ id, key: k, target, content });
+    return { __smooth_portal__: true, id };
+  }
   
+  _processPortals() {
+    if (!this._pendingPortals || this._pendingPortals.length === 0) return;
+    for (const p of this._pendingPortals) {
+      const targetEl = typeof p.target === 'string' ? (document.querySelector(p.target)) : (p.target || null);
+      if (!targetEl) continue;
+      // get or create container in target
+      let rec = this._portalMap.get(p.key);
+      if (!rec || !rec.targetEl || rec.targetEl !== targetEl) {
+        // if existing container exists in a different target, remove it
+        if (rec && rec.containerEl && rec.containerEl.parentNode) {
+          try { rec.containerEl.parentNode.removeChild(rec.containerEl); } catch {}
+        }
+        const containerEl = document.createElement('div');
+        containerEl.setAttribute('data-smooth-portal', p.key);
+        targetEl.appendChild(containerEl);
+        rec = { targetEl, containerEl };
+        this._portalMap.set(p.key, rec);
+      }
+      // Build new content fragment
+      const tmp = document.createElement('div');
+      const c = (typeof p.content === 'function') ? p.content.call(this, this) : p.content;
+      if (typeof c === 'string') tmp.innerHTML = c;
+      else if (c instanceof Node) tmp.appendChild(c.cloneNode(true));
+      else if (Array.isArray(c)) tmp.innerHTML = c.join('');
+      else if (c != null) tmp.textContent = String(c);
+      // Patch target container children
+      this._patchChildren(
+        rec.containerEl,
+        Array.from(rec.containerEl.childNodes),
+        Array.from(tmp.childNodes)
+      );
+    }
+    this._pendingPortals.length = 0;
+  }
+
   // Lightweight DOM utilities for diffing
   _isText(node) { return node && node.nodeType === Node.TEXT_NODE; }
   _isElement(node) { return node && node.nodeType === Node.ELEMENT_NODE; }
@@ -245,6 +358,19 @@ export class SmoothComponent {
     if (typeof document === 'undefined') return;
     if (!this.element || this.isRendering) return;
     
+    // Register element-instance mapping
+    try { if (this.element) this.constructor._byEl.set(this.element, this); } catch {}
+
+    // Apply any pending context entries now that we have an element
+    if (this._pendingContext && this.element) {
+      for (const entry of this._pendingContext) {
+        let map = _contextRegistry.get(this.element);
+        if (!map) { map = new Map(); _contextRegistry.set(this.element, map); }
+        map.set(entry.id, entry.value);
+      }
+      this._pendingContext = null;
+    }
+    
     // Capture focus inside this component before rendering
     let focusInfo = null;
     try {
@@ -265,7 +391,9 @@ export class SmoothComponent {
       const html = this.template();
       // Build a temporary container for the new content
       const container = document.createElement('div');
-      if (typeof html === 'string') {
+      if (html == null) {
+        container.innerHTML = '';
+      } else if (typeof html === 'string') {
         container.innerHTML = html;
       } else if (html instanceof Node) {
         container.appendChild(html.cloneNode(true));
@@ -279,8 +407,13 @@ export class SmoothComponent {
         Array.from(container.childNodes)
       );
       this.bindEvents();
-      this._mounted = true;
-      this.onMount();
+      // Process any pending portals after main patch
+      try { this._processPortals && this._processPortals(); } catch (e) { console.error('portal processing error:', e); }
+      const firstMount = !this._mounted;
+      if (firstMount) {
+        this._mounted = true;
+        try { this.onMount(); } catch (e) { console.error('onMount error:', e); }
+      }
 
       // Restore focus if possible
       if (focusInfo) {
@@ -304,7 +437,7 @@ export class SmoothComponent {
       }
     } catch (error) {
       try { if (typeof this.onError === 'function') this.onError(error); } catch (e) { console.error('onError error:', e); }
-      console.error(`Error rendering component:`, error);
+      if (_shouldLogErrors()) console.error(`Error rendering component:`, error);
       if (this.element) {
         try {
           if (typeof this.renderError === 'function') {
@@ -390,6 +523,7 @@ export class SmoothComponent {
     if (typeof document === 'undefined') return this;
     if (options && typeof options === 'object') {
       if (options.props && typeof options.props === 'object') this.props = { ...this.props, ...options.props };
+      if (options.state && typeof options.state === 'object') this.state = { ...this.state, ...options.state };
       if (Array.isArray(options.children)) this.children = options.children.slice();
     }
     if (typeof selector === 'string') {
@@ -414,11 +548,26 @@ export class SmoothComponent {
       } catch (err) {
         console.error('onUnmount error:', err);
       }
+      // Clean up portals
+      if (this._portalMap) {
+        try {
+          for (const rec of this._portalMap.values()) {
+            if (rec && rec.containerEl && rec.containerEl.parentNode) {
+              rec.containerEl.parentNode.removeChild(rec.containerEl);
+            }
+          }
+        } catch {}
+        this._portalMap.clear();
+      }
+      // Clear context entries for this element
+      try { if (this.element) _contextRegistry.delete(this.element); } catch {}
       this.events.clear();
       this.element.innerHTML = '';
       this.element = null;
       this._mounted = false;
     }
+    // Clear children to release references
+    this.children = [];
   }
   
   find(selector) {

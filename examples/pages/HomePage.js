@@ -21,6 +21,8 @@ export class HomePage extends Component {
           { href: '#/dom', title: 'DOM Manipulation', desc: 'Direct DOM access and utilities' },
           { href: '#/users', title: 'User Management', desc: 'Dynamic routing with parameters' },
           { href: '#/loading-demo', title: 'Loading Demo', desc: 'Navigation guards with async validation' },
+          { href: '#/composition', title: 'Composition', desc: 'Context, portals, and children demos' },
+          { href: './ssr.html', title: 'SSR + Hydration', desc: 'Server-rendered HTML hydrated on the client' },
           { href: '#/error', title: 'Error Boundaries', desc: 'Error boundary fallback demo' },
           { href: '#/about', title: 'About', desc: 'Utilities, formatters, and version info' }
         ].map(item => this.html`

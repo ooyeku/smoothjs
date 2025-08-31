@@ -10,3 +10,4 @@ export { ErrorPage } from './ErrorPage.js';
 export { NotFound } from './NotFound.js';
 export { ProtectedPage } from './ProtectedPage.js';
 export { LoadingDemoPage } from './LoadingDemoPage.js';
+export { CompositionPage } from './CompositionPage.js';

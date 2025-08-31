@@ -2,8 +2,9 @@
 
 export type Dict<T = any> = { [key: string]: T };
 
-export interface MountOptions<P = any> {
+export interface MountOptions<P = any, S = any> {
   props?: P;
+  state?: Partial<S> | any;
   children?: any[];
 }
 

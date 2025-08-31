@@ -4,3 +4,7 @@ export { ActionButton } from './ActionButton.js';
 export { DataTable } from './DataTable.js';
 export { DarkModeToggle } from './DarkModeToggle.js';
 export { GlobalErrorBoundary } from './GlobalErrorBoundary.js';
+export { ContextDemo } from './ContextDemo.js';
+export { PortalDemo } from './PortalDemo.js';
+export { ChildrenDemo } from './ChildrenDemo.js';
+export { SsrCounter } from './SsrCounter.js';

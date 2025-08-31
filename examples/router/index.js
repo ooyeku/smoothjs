@@ -10,6 +10,7 @@ import { ErrorPage } from '../pages/ErrorPage.js';
 import { ProtectedPage } from '../pages/ProtectedPage.js';
 import { LoadingDemoPage } from '../pages/LoadingDemoPage.js';
 import { NotFound } from '../pages/NotFound.js';
+import { CompositionPage } from '../pages/CompositionPage.js';
 
 // Router Setup with Advanced Guards (hash mode for static hosting)
 const router = new Router({
@@ -30,6 +31,7 @@ router
   .route('/error', ErrorPage)
   .route('/about', AboutPage)
   .route('/protected', ProtectedPage)
-  .route('/loading-demo', LoadingDemoPage);
+  .route('/loading-demo', LoadingDemoPage)
+  .route('/composition', CompositionPage);
 
 export { router };

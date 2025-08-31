@@ -9,8 +9,12 @@
 
 export const SSR = {
   renderToString(ComponentClass, { props = {}, state = undefined, containerId = null } = {}) {
-    // Create instance with initial state and props
-    const instance = new ComponentClass(null, state || undefined, props || {});
+    // Create instance; components may ignore constructor args, so assign props/state explicitly
+    const instance = new ComponentClass(null, undefined, undefined);
+    try {
+      if (props && typeof props === 'object') instance.props = { ...(instance.props || {}), ...props };
+      if (state && typeof state === 'object') instance.state = { ...(instance.state || {}), ...state };
+    } catch {}
     let html = '';
     try {
       const out = instance.template();

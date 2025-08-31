@@ -10,14 +10,14 @@ import path from 'path';
  */
 export async function createProject(projectName, options = {}) {
   if (!projectName) {
-    console.error('❌ Project name is required');
+    console.error('Project name is required');
     console.log('Usage: npx smoothjs create <project-name>');
     process.exit(1);
   }
 
   // Validate project name
   if (!/^[a-z0-9-]+$/.test(projectName)) {
-    console.error('❌ Project name must contain only lowercase letters, numbers, and hyphens');
+    console.error('Project name must contain only lowercase letters, numbers, and hyphens');
     process.exit(1);
   }
 
@@ -45,7 +45,7 @@ export async function createProject(projectName, options = {}) {
       process.exit(1);
     }
   } catch (error) {
-    console.error('❌ Failed to create project:', error.message);
+    console.error('Failed to create project:', error.message);
     process.exit(1);
   }
 }
@@ -59,15 +59,15 @@ export async function validateProject(projectPath = process.cwd()) {
     const validation = await scaffold.validateStructure();
     
     if (validation.isValid) {
-      console.log('✅ Project structure is valid!');
+      console.log('Project structure is valid.');
       return true;
     } else {
-      console.log('❌ Project structure has issues:');
-      validation.issues.forEach(issue => console.log(`  - ${issue}`);
+      console.log('Project structure has issues:');
+      validation.issues.forEach(issue => console.log(`  - ${issue}`));
       return false;
     }
   } catch (error) {
-    console.error('❌ Validation failed:', error.message);
+    console.error('Validation failed:', error.message);
     return false;
   }
 }
@@ -79,12 +79,12 @@ export async function addItem(type, name, options = {}) {
   const validTypes = ['component', 'page', 'store', 'util'];
   
   if (!validTypes.includes(type)) {
-    console.error(`❌ Invalid type. Must be one of: ${validTypes.join(', ')}`);
+    console.error(`Invalid type. Must be one of: ${validTypes.join(', ')}`);
     process.exit(1);
   }
 
   if (!name) {
-    console.error('❌ Item name is required');
+    console.error('Item name is required');
     console.log(`Usage: npx smoothjs add ${type} <name>`);
     process.exit(1);
   }
@@ -94,9 +94,9 @@ export async function addItem(type, name, options = {}) {
   try {
     const scaffold = new ProjectScaffold('', projectPath);
     await scaffold.addItem(type, name, options);
-    console.log(`✅ Added ${type}: ${name}`);
+    console.log(`Added ${type}: ${name}`);
   } catch (error) {
-    console.error(`❌ Failed to add ${type}:`, error.message);
+    console.error(`Failed to add ${type}:`, error.message);
     process.exit(1);
   }
 }

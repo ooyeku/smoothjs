@@ -46,7 +46,7 @@ export class ProjectScaffold {
    */
   async scaffold() {
     try {
-      console.log(`🚀 Creating SmoothJS project: ${this.projectName}`);
+      console.log(`Creating SmoothJS project: ${this.projectName}`);
       
       // Create project directory
       await this.createProjectDirectory();
@@ -60,9 +60,9 @@ export class ProjectScaffold {
       // Create example components
       await this.createExampleComponents();
       
-      console.log(`✅ Project ${this.projectName} created successfully!`);
-      console.log(`📁 Location: ${this.projectDir}`);
-      console.log('\n📋 Next steps:');
+      console.log(`Project ${this.projectName} created successfully!`);
+      console.log(`Location: ${this.projectDir}`);
+      console.log('\nNext steps:');
       console.log(`  cd ${this.projectName}`);
       console.log('  npm install');
       console.log('  npm run dev');
@@ -80,7 +80,7 @@ export class ProjectScaffold {
   async createProjectDirectory() {
     try {
       await fs.mkdir(this.projectDir, { recursive: true });
-      console.log(`📁 Created project directory: ${this.projectName}`);
+      console.log(`Created project directory: ${this.projectName}`);
     } catch (error) {
       throw new Error(`Failed to create project directory: ${error.message}`);
     }
@@ -94,7 +94,7 @@ export class ProjectScaffold {
       const dirPath = path.join(this.projectDir, dir);
       try {
         await fs.mkdir(dirPath, { recursive: true });
-        console.log(`📁 Created directory: ${dir}`);
+        console.log(`Created directory: ${dir}`);
       } catch (error) {
         throw new Error(`Failed to create directory ${dir}: ${error.message}`);
       }
@@ -115,7 +115,7 @@ export class ProjectScaffold {
         
         // Write file
         await fs.writeFile(fullPath, content, 'utf8');
-        console.log(`📄 Created: ${filePath}`);
+        console.log(`Created: ${filePath}`);
       } catch (error) {
         throw new Error(`Failed to create ${filePath}: ${error.message}`);
       }
@@ -139,7 +139,7 @@ export class ProjectScaffold {
       const fullPath = path.join(this.projectDir, filePath);
       try {
         await fs.writeFile(fullPath, content, 'utf8');
-        console.log(`📄 Created: ${filePath}`);
+        console.log(`Created: ${filePath}`);
       } catch (error) {
         throw new Error(`Failed to create ${filePath}: ${error.message}`);
       }
@@ -233,7 +233,7 @@ export class ProjectScaffold {
     try {
       await fs.mkdir(dir, { recursive: true });
       await fs.writeFile(fullPath, content, 'utf8');
-      console.log(`📄 Created: ${filePath}`);
+      console.log(`Created: ${filePath}`);
     } catch (error) {
       throw new Error(`Failed to create ${filePath}: ${error.message}`);
     }
@@ -284,9 +284,9 @@ export class ProjectScaffold {
       
       // Write back to file
       await fs.writeFile(fullIndexPath, lines.join('\n'), 'utf8');
-      console.log(`📝 Updated: ${indexPath}`);
+      console.log(`Updated: ${indexPath}`);
     } catch (error) {
-      console.warn(`⚠️  Could not update ${indexPath}: ${error.message}`);
+      console.warn(`Could not update ${indexPath}: ${error.message}`);
     }
   }
 
@@ -665,9 +665,7 @@ temp/`;
   }
 
   getViteConfigTemplate() {
-    return `import { defineConfig } from 'vite';
-
-export default defineConfig({
+    return `export default {
   root: '.',
   build: {
     outDir: 'dist',
@@ -681,7 +679,7 @@ export default defineConfig({
     port: 3000,
     open: true
   }
-});`;
+};`;
   }
 
   getJsConfigTemplate() {

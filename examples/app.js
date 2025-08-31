@@ -1,9 +1,9 @@
 import { Component, createElement, $, $$, version } from '../index.js';
 import { StatCard } from './components/StatCard.js';
-import { ActionButton } from './components/ActionButton.js';
-import { DataTable } from './components/DataTable.js';
-import { DarkModeToggle } from './components/DarkModeToggle.js';
-import { GlobalErrorBoundary } from './components/GlobalErrorBoundary.js';
+import { ActionButton } from './components/index.js';
+import { DataTable } from './components/index.js';
+import { DarkModeToggle } from './components/index.js';
+import { GlobalErrorBoundary } from './components/index.js';
 import { router } from './router/index.js';
 import { 
   counterStore, 

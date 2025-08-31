@@ -22,7 +22,7 @@ Below is a concise evaluation of your library’s current state, followed by a p
 
 ## Proposed roadmap
 
-### Phase 1: Core runtime and composition
+### Phase 1: Core runtime and composition — Completed (see examples/CompositionPage.js, components/ContextDemo.js, components/PortalDemo.js, components/ChildrenDemo.js, components/DataTable.js [keyed], and pages/ErrorPage.js)
 - Fine-grained updates
   - Add keyed reconciliation for lists and minimal diffing for attribute/text nodes.
   - Outcome: Rendering cost scales with change size; list reorders preserve state.
@@ -33,7 +33,7 @@ Below is a concise evaluation of your library’s current state, followed by a p
   - Props/children API, context providers/consumers, and portals.
   - Outcome: Reusable, composable components without prop drilling.
 
-### Phase 2: SSR + hydration
+### Phase 2: SSR + hydration — Completed (see examples/ssr.html and tests/ssr.test.js)
 - Hydration path
   - Documented server render + client hydrate API; preserve event handlers and state.
   - Outcome: Benchmarked SSR-to-interactive with correctness tests.

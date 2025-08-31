@@ -103,7 +103,7 @@ export class DataTable extends Component {
                 </td>
               </tr>
             ` : sortedData.map((row, index) => this.html`
-              <tr style="border-bottom: 1px solid #e5e7eb;">
+              <tr data-key="${row.id || index}" style="border-bottom: 1px solid #e5e7eb;">
                 ${this.props.selectable ? this.html`
                   <td style="padding: 1rem; white-space: nowrap;">
                     <input

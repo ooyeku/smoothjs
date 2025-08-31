@@ -29,7 +29,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   switch (command) {
     case 'create':
       if (!args[0]) {
-        console.error('❌ Project name is required');
+        console.error('Project name is required');
         console.log('Usage: npx smoothjs create <project-name> [target-dir]');
         process.exit(1);
       }
@@ -47,7 +47,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       
     case 'add':
       if (!args[0] || !args[1]) {
-        console.error('❌ Type and name are required');
+        console.error('Type and name are required');
         console.log('Usage: npx smoothjs add <type> <name> [project-path]');
         console.log('Types: component, page, store, util');
         process.exit(1);
@@ -71,7 +71,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
  * Display CLI help information
  */
 function showHelp() {
-  console.log('🚀 SmoothJS CLI - Project Management and Structure Enforcement');
+  console.log('SmoothJS CLI - Project Management and Structure Enforcement');
   console.log('=============================================================');
   console.log('');
   console.log('Commands:');

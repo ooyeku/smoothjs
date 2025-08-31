@@ -74,7 +74,7 @@ export class ProjectValidator {
         score: this.calculateScore()
       };
     } catch (error) {
-      console.error('❌ Validation failed:', error.message);
+      console.error('Validation failed:', error.message);
       return {
         isValid: false,
         issues: [error.message],
@@ -302,9 +302,9 @@ export class ProjectValidator {
     console.log('=====================================');
     
     if (this.issues.length === 0) {
-      console.log('✅ No critical issues found!');
+      console.log('No critical issues found.');
     } else {
-      console.log(`❌ Found ${this.issues.length} critical issue(s):`);
+      console.log(`Found ${this.issues.length} critical issue(s):`);
       this.issues.forEach(issue => console.log(`   • ${issue}`));
     }
     

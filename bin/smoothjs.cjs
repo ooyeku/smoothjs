@@ -13,7 +13,7 @@ const path = require('path');
 const cp = require('child_process');
 
 function printHelp() {
-  console.log(`SmoothJS CLI\n\nUsage:\n  smoothjs help\n  smoothjs create <dir>\n  smoothjs serve [dir] [--port <port>]\n\nExamples:\n  smoothjs create my-app\n  smoothjs serve --port 5173\n  smoothjs serve examples --port 5173\n`);
+  console.log(`SmoothJS CLI\n\nUsage:\n  smoothjs help\n  smoothjs create <project-name>\n  smoothjs serve [dir] [--port <port>]\n\nExamples:\n  smoothjs create my-app\n  smoothjs serve --port 5173\n  smoothjs serve examples --port 5173\n`);
 }
 
 function ensureDir(p) {
@@ -25,45 +25,30 @@ function writeFileSafe(filePath, content) {
   fs.writeFileSync(filePath, content);
 }
 
-function cmdCreate(dirArg) {
+async function cmdCreate(dirArg) {
   const dest = path.resolve(process.cwd(), dirArg || 'smoothjs-app');
   if (fs.existsSync(dest) && fs.readdirSync(dest).length > 0) {
     console.error(`Target directory not empty: ${dest}`);
     process.exit(1);
   }
-  ensureDir(dest);
+  // Delegate to the opinionated scaffolder in src/cli
+  const projectName = path.basename(dest);
 
-  const indexHtml = '<!DOCTYPE html>\n'
-    + '<html lang="en">\n'
-    + '<head>\n'
-    + '  <meta charset="UTF-8" />\n'
-    + '  <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n'
-    + '  <title>SmoothJS App</title>\n'
-    + '</head>\n'
-    + '<body>\n'
-    + '  <div id="app"></div>\n'
-    + '  <script type="module">\n'
-    + "    import SmoothJS, { Component } from 'smoothjs/index.js';\n"
-    + '    class App extends Component {\n'
-    + '      template() { return `<h1>Hello SmoothJS</h1>`; }\n'
-    + '    }\n'
-    + "    new App().mount('#app');\n"
-    + '  </script>\n'
-    + '</body>\n'
-    + '</html>';
+  // ESM import of the scaffolder from CJS
+  let ProjectScaffold;
+  try {
+    const mod = await import(path.resolve(__dirname, '../src/cli/scaffold.js'));
+    ProjectScaffold = mod.ProjectScaffold;
+  } catch (e) {
+    console.error('Failed to load scaffolder:', e.message);
+    process.exit(1);
+  }
 
-  writeFileSafe(path.join(dest, 'index.html'), indexHtml);
+  const scaffold = new ProjectScaffold(projectName, path.dirname(dest));
+  const ok = await scaffold.scaffold();
+  if (!ok) process.exit(1);
 
-  const pkgJson = {
-    name: path.basename(dest),
-    private: true,
-    type: 'module'
-  };
-  writeFileSafe(path.join(dest, 'package.json'), JSON.stringify(pkgJson, null, 2));
-
-  console.log(`✔ Created SmoothJS app in ${dest}`);
-  console.log('Open index.html in your browser, or serve with:');
-  console.log(`  smoothjs serve ${dirArg || '.'} --port 5173`);
+  // Scaffolder already prints next steps.
 }
 
 function startVite(rootDir = '.', port = 5173) {
@@ -73,12 +58,62 @@ function startVite(rootDir = '.', port = 5173) {
     console.error('Vite is not installed with smoothjs. Please reinstall smoothjs or add vite to your project.');
     process.exit(1);
   }
+
+  // Prepare a temporary Vite config to alias 'smoothjs' to this package when serving external dirs.
+  // This lets freshly scaffolded apps work without installing dependencies first.
+  const hasUserConfig = ['vite.config.js','vite.config.mjs','vite.config.cjs','vite.config.ts','vite.config.mts','vite.config.cts']
+    .some(f => fs.existsSync(path.join(cwd, f)));
+
+  let tempConfigPath = null;
+  if (!hasUserConfig) {
+    try {
+      // Try resolve order: local project node_modules, global node_modules, this package
+      let aliasTarget = null;
+      const tryPaths = [];
+      // 1) local project resolution
+      try {
+        const localResolved = require.resolve('smoothjs', { paths: [cwd] });
+        tryPaths.push(localResolved);
+      } catch {}
+      // 2) global resolution via `npm root -g`
+      try {
+        const out = cp.execSync('npm root -g', { encoding: 'utf8' }).trim();
+        const candidate = path.join(out, 'smoothjs', 'index.js');
+        tryPaths.push(candidate);
+      } catch {}
+      // 3) fallback to this package (useful if running from linked repo)
+      tryPaths.push(path.resolve(__dirname, '../index.js'));
+
+      for (const p of tryPaths) {
+        if (typeof p === 'string' && fs.existsSync(p)) {
+          aliasTarget = p;
+          break;
+        }
+      }
+
+      if (!aliasTarget) {
+        // Last resort: point to package name; Vite may resolve via its own algorithm if installed
+        aliasTarget = 'smoothjs';
+      }
+
+      const contents = `export default {\n  resolve: { alias: { smoothjs: ${JSON.stringify(aliasTarget)} } },\n  server: { port: ${Number(port)} }\n};\n`;
+      tempConfigPath = path.join(cwd, '.smoothjs.vite.config.mjs');
+      fs.writeFileSync(tempConfigPath, contents);
+    } catch (e) {
+      // If we fail to write config, continue without alias; resolution will work if the app installed deps.
+      tempConfigPath = null;
+    }
+  }
+
   const args = [];
   // Provide root explicitly when not current dir to mirror `vite --root <dir>` behavior
   if (rootDir && rootDir !== '.') {
     args.push('--root', cwd);
   }
   args.push('--port', String(port));
+  if (tempConfigPath) {
+    args.push('--config', tempConfigPath);
+  }
   const child = cp.spawn(process.execPath, [viteBin, ...args], { stdio: 'inherit', cwd: process.cwd(), env: { ...process.env } });
   child.on('exit', (code) => process.exit(code || 0));
 }
@@ -93,7 +128,7 @@ function main(argv) {
   const args = argv.slice(2);
   const cmd = args[0] || 'help';
   if (cmd === 'help' || cmd === '--help' || cmd === '-h') return printHelp();
-  if (cmd === 'create') return cmdCreate(args[1]);
+  if (cmd === 'create') return cmdCreate(args[1]).then(()=>{});
   if (cmd === 'serve') {
     let dir = args[1] && !args[1].startsWith('--') ? args[1] : '.';
     let portIdx = args.findIndex(a => a === '--port');
