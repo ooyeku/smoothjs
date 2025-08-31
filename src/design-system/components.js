@@ -549,5 +549,130 @@ export const VelvetUI = {
   Container: VContainer,
   Toast: VToast,
   Modal: VModal,
-  Grid: VGrid
+  Grid: VGrid,
+  get Tabs() { return VTabs; }
 };
+
+// Tabs Component (accessible)
+export class VTabs extends VelvetComponent {
+  static defaultProps = {
+    tabs: [], // [{ id, label, content }]
+    selectedIndex: 0,
+    onChange: null
+  };
+
+  constructor(element, initialState, props) {
+    const p = { ...VTabs.defaultProps, ...props };
+    super(element, { index: p.selectedIndex || 0 }, p);
+  }
+
+  onCreate() {
+    // Click to activate
+    this.on('click', '[role="tab"]', (e) => {
+      const idx = Number(e.currentTarget.getAttribute('data-index')) || 0;
+      this._select(idx, true);
+    });
+    // Keyboard navigation
+    this.on('keydown', '[role="tab"]', (e) => {
+      const count = (this.props.tabs || []).length;
+      if (!count) return;
+      const current = this.state.index || 0;
+      let next = null;
+      switch (e.key) {
+        case 'ArrowRight': next = (current + 1) % count; break;
+        case 'ArrowLeft': next = (current - 1 + count) % count; break;
+        case 'Home': next = 0; break;
+        case 'End': next = count - 1; break;
+        case 'Enter': case ' ': next = current; break;
+      }
+      if (next != null) {
+        e.preventDefault();
+        this._select(next, true, { focus: true });
+      }
+    });
+  }
+
+  _select(index, notify = false, { focus = false } = {}) {
+    const prev = this.state.index;
+    if (index === prev) return;
+    this.setState({ index });
+    // after render, optionally focus the tab button
+    Promise.resolve().then(() => {
+      if (focus && this.element) {
+        const btn = this.element.querySelector(`[role="tab"][data-index="${index}"]`);
+        if (btn) try { btn.focus(); } catch {}
+      }
+    });
+    if (notify && typeof this.props.onChange === 'function') {
+      try { this.props.onChange(index); } catch {}
+    }
+  }
+
+  template() {
+    const tabs = this.props.tabs || [];
+    const idx = Math.min(Math.max(this.state.index || 0, 0), Math.max(0, tabs.length - 1));
+
+    const tablistStyle = {
+      base: {
+        display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e4e4e7', paddingBottom: '0.25rem'
+      },
+      dark: { borderBottomColor: '#52525b' }
+    };
+    const tabStyle = (active) => ({
+      base: {
+        appearance: 'none',
+        background: 'transparent',
+        border: '0',
+        borderBottom: active ? '2px solid #0ea5e9' : '2px solid transparent',
+        color: active ? '#0ea5e9' : 'inherit',
+        padding: '0.5rem 0.75rem',
+        cursor: 'pointer',
+        borderRadius: '6px 6px 0 0'
+      },
+      hover: { backgroundColor: 'rgba(14,165,233,0.08)' },
+      dark: {
+        color: active ? '#8dd9ff' : 'inherit',
+        borderBottomColor: active ? '#8dd9ff' : 'transparent'
+      }
+    });
+    const panelStyle = {
+      base: { padding: '0.75rem', outline: 'none' }
+    };
+
+    const tabBtns = tabs.map((t, i) => {
+      const active = i === idx;
+      const id = `tab-${i}`;
+      const panelId = `panel-${i}`;
+      return this.html`
+        <button
+          role="tab"
+          id="${id}"
+          class="${this.vs(tabStyle(active))}"
+          aria-selected="${active ? 'true' : 'false'}"
+          aria-controls="${panelId}"
+          tabindex="${active ? '0' : '-1'}"
+          data-index="${i}"
+          type="button"
+        >${t.label || `Tab ${i+1}`}</button>`;
+    }).join('');
+
+    const panels = tabs.map((t, i) => {
+      const active = i === idx;
+      const id = `panel-${i}`;
+      const labelId = `tab-${i}`;
+      return this.html`
+        <div role="tabpanel" id="${id}" aria-labelledby="${labelId}" hidden="${active ? '' : 'hidden'}" class="${this.vs(panelStyle)}" ${active ? '' : 'style="display:none;"'}>
+          ${t.content || ''}
+        </div>`;
+    }).join('');
+
+    return this.html`
+      <div class="v-tabs">
+        <div role="tablist" aria-label="Tabs" class="${this.vs(tablistStyle)}">
+          ${tabBtns}
+        </div>
+        ${panels}
+      </div>
+    `;
+  }
+}

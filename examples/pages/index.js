@@ -12,3 +12,4 @@ export { ProtectedPage } from './ProtectedPage.js';
 export { LoadingDemoPage } from './LoadingDemoPage.js';
 export { CompositionPage } from './CompositionPage.js';
 export { MutationsPage } from './MutationsPage.js';
+export { DesignSystemPage } from './DesignSystemPage.js';

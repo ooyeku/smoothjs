@@ -49,7 +49,7 @@ Below is a concise evaluation of your library’s current state, followed by a p
   - Mutations with optimistic updates, tag/scoped invalidation, background revalidation (stale-while-revalidate), focus/reconnect refetch policies.
   - Outcome: Ergonomic, robust data flows akin to lightweight React Query.
 
-### Phase 4: Styling/design system maturity
+### Phase 4: Styling/design system maturity — Completed (see examples/pages/DesignSystemPage.js and src/design-system/components.js [VButton, VInput, VModal, VTabs])
 - Component primitives and tokens
   - Expand a small set of headless and styled primitives (Button, Input, Modal, Tabs) with keyboard navigation and a11y baked in.
   - Theme variants and dark mode system-wide toggles; responsive utilities.
