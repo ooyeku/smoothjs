@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Vite cache
+.vite/
+node_modules/.vite/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+
+# Coverage and reports
+coverage/
+
+# Caches
+.cache/
+.parcel-cache/
+.turbo/
+
+# Hosting/platform artifacts
+.vercel/
+.netlify/
+
+# Tooling
+.eslintcache
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/

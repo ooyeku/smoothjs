@@ -1,0 +1,13 @@
+{
+  "message": "Hello from SmoothJS examples!",
+  "description": "This JSON is fetched by the Fetch demo to showcase the built-in HTTP client, base URLs, timeouts, and error handling.",
+  "items": [
+    { "id": 1, "name": "Alpha", "value": 42 },
+    { "id": 2, "name": "Beta", "value": 7 },
+    { "id": 3, "name": "Gamma", "value": 13 }
+  ],
+  "stats": {
+    "count": 3,
+    "sum": 62
+  }
+}

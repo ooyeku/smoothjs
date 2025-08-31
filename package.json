@@ -1,0 +1,61 @@
+{
+  "name": "smoothjs",
+  "version": "0.0.0",
+  "description": "A minimal, lightweight JavaScript framework for building simple frontend applications. Perfect for backend developers who want to quickly build UIs without complex tooling.",
+  "license": "MIT",
+  "author": "Ola Yeku",
+  "type": "module",
+  "main": "index.js",
+  "module": "index.js",
+  "exports": {
+    ".": {
+      "import": "./index.js"
+    }
+  },
+  "unpkg": "./dist/smoothjs.min.js",
+  "jsdelivr": "./dist/smoothjs.min.js",
+  "browser": "./index.js",
+  "sideEffects": false,
+  "types": "index.d.ts",
+  "bin": {
+    "smoothjs": "bin/smoothjs.cjs"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "src/**/*",
+    "dist/**/*",
+    "bin/smoothjs.cjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "start": "vite",
+    "examples": "vite",
+    "build": "vite build",
+    "preview": "vite preview --open",
+    "test": "echo \"No tests yet - add tests as needed\" && exit 0"
+  },
+  "keywords": [
+    "javascript",
+    "framework",
+    "frontend",
+    "ui",
+    "component",
+    "lightweight",
+    "minimal",
+    "simple"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ooyeku/smoothjs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ooyeku/smoothjs/issues"
+  },
+  "homepage": "https://github.com/ooyeku/smoothjs#readme",
+  "dependencies": {
+    "vite": "^5.4.0"
+  }
+}
