@@ -14,6 +14,7 @@ import {
   selectAnimationDuration, 
   selectAppStatus 
 } from './stores/index.js';
+import { FunctionalBadge } from './components/index.js';
 
 // Simple theme toggle function
 window.toggleDarkMode = function() {
@@ -57,6 +58,13 @@ function startApp() {
       const darkToggle = new DarkModeToggle(null, {}, { toggleDarkMode: window.toggleDarkMode });
       darkToggle.mount(toggleHost);
     }
+    // Mount a tiny functional badge globally so every page demonstrates functional components
+    try {
+      const badgeMount = document.createElement('div');
+      document.body.appendChild(badgeMount);
+      const fb = new FunctionalBadge();
+      fb.mount(badgeMount);
+    } catch {}
   });
 }
 

@@ -116,15 +116,19 @@ class QueryClientImpl {
 
     if (e.inflight) return e.inflight;
 
+    const startedAt = now();
     e.inflight = Promise.resolve(e.fetcher())
       .then((data) => {
         e.inflight = null;
-        e.data = data;
-        e.error = null;
-        e.updatedAt = now();
-        this._emit(key);
+        // Only apply result if no newer update happened after this fetch started
+        if (!e.updatedAt || e.updatedAt <= startedAt) {
+          e.data = data;
+          e.error = null;
+          e.updatedAt = now();
+          this._emit(key);
+        }
         this._scheduleGC(key, e);
-        return data;
+        return e.data;
       })
       .catch((err) => {
         e.inflight = null;

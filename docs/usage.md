@@ -271,3 +271,82 @@ import { Testing } from 'smoothjs';
 - “Element not found” warnings: ensure mount() selector exists before calling.
 - Hydration issues: make server HTML match template() string output and pass initial state to hydrate().
 - Router not rendering: confirm router.options.root points to an existing element and start() was called.
+
+
+
+# Functional Components
+
+SmoothJS supports functional components via defineComponent(setup). The setup function receives a small context with hooks and utilities and returns a render() function (plus optional lifecycle callbacks).
+
+Example (counter with delegated events):
+
+```javascript
+import { defineComponent } from 'smoothjs';
+
+const Counter = defineComponent(({ useState, html, on }) => {
+  const [n, setN] = useState(0);
+  on('click', '#inc', () => setN(v => v + 1));
+  const render = () => html`<button id="inc">+1</button><span>${n}</span>`;
+  return { render };
+});
+```
+
+Hooks available:
+- useState(initial)
+- useRef(initial?)
+- useMemo(factory, deps?)
+- useEffect(effect, deps?)
+- useContext(Context)/provideContext(Context, value)
+- portal(target, content, key?)
+- useQuery(key, fetcher, options?) — thin adapter over Query
+
+Context and portals:
+```javascript
+import { defineComponent, createContext } from 'smoothjs';
+const Theme = createContext('light');
+
+const Demo = defineComponent(({ provideContext, useContext, html, portal, useState, on }) => {
+  provideContext(Theme, 'dark');
+  const theme = useContext(Theme);
+  const [open, setOpen] = useState(false);
+  on('click', '#toggle', () => setOpen(v => !v));
+  const render = () => html`
+    <button id="toggle">${open ? 'Hide' : 'Show'} Portal</button>
+    ${open ? portal('#portal-target', `<div data-key="p">Theme: ${theme}</div>`) : ''}
+  `;
+  return { render };
+});
+```
+
+Data with useQuery:
+```javascript
+import { defineComponent, http } from 'smoothjs';
+
+const DataBox = defineComponent(({ useQuery, html }) => {
+  const [data, q] = useQuery('todos', () => http.get('/api/todos'), {
+    staleTime: 30000,
+    cacheTime: 300000,
+    swr: true,
+    tags: ['todos']
+  });
+  const render = () => html`
+    <div>
+      <button id="refetch">Refetch</button>
+      ${q.error ? `Error: ${q.error}` : ''}
+      <pre>${data ? JSON.stringify(data, null, 2) : 'Loading...'}</pre>
+    </div>
+  `;
+  return { render };
+});
+```
+
+Migration guide (functional vs class):
+- Choose functional for concise components with local state, effects, and integrated data via useQuery.
+- Class components remain supported; both interoperate. You can mount function components anywhere a class component is accepted.
+- Event delegation stays the same via on(event, selector, handler) in setup.
+
+FAQ additions:
+- Performance: hooks are thin over the existing scheduler; prefer keyed lists and batching as usual.
+- Event handling: continue to use delegated events to limit listeners.
+- Security: sanitization behavior is unchanged; never inject untrusted HTML; prefer Security.sanitize for unsafe inputs.
+- IDE/lint: avoid calling hooks conditionally; keep call orders stable.

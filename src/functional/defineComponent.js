@@ -1,4 +1,5 @@
 import { SmoothComponent } from '../component/SmoothComponent.js';
+import { Query } from '../data/query.js';
 
 // Shallow compare dependency arrays
 function depsChanged(a, b) {
@@ -66,6 +67,8 @@ export function defineComponent(setup) {
       ctx.provideContext = function(Context, value) { return self.provideContext(Context, value); };
       ctx.useContext = function(Context) { return self.useContext(Context); };
       ctx.on = function(event, selector, handler) { return self.on(event, selector, handler); };
+      // Data hook: useQuery as thin adapter
+      ctx.useQuery = function(key, fetcher, options) { return self._useQuery(key, fetcher, options); };
       // Accessors
       Object.defineProperties(ctx, {
         props: { get() { return self.props; } },
@@ -132,6 +135,80 @@ export function defineComponent(setup) {
       // Return noop; not used directly by callers in this design
     }
 
+    _useQuery(key, fetcher, options = {}) {
+      const i = this._hookIndex++;
+      const k = String(key);
+      let entry = this._hooks[i];
+      if (!entry || entry.kind !== 'query' || entry.key !== k) {
+        // Cleanup previous subscription if reusing slot
+        if (entry && entry.kind === 'query' && typeof entry.unsub === 'function') {
+          try { entry.unsub(); } catch {}
+        }
+        const initial = { data: Query.getData(k), error: null, updatedAt: 0 };
+        const self = this;
+        // Create record first so the subscribe callback can safely reference it
+        entry = { kind: 'query', key: k, snapshot: initial, unsub: null };
+        this._hooks[i] = entry;
+        const unsub = Query.subscribe(k, (snap) => {
+          // Update snapshot and request re-render
+          entry.snapshot = snap;
+          // Prefer immediate render to reduce latency in tests and UI
+          if (self.element) {
+            try { self.render(); } catch {}
+          } else {
+            self._enqueueRender();
+          }
+        });
+        entry.unsub = unsub;
+        // Kick off fetch lazily; if data appears before this microtask (e.g., via setData), skip
+        Promise.resolve().then(() => {
+          if (!this.element) return; // unmounted
+          const cur = entry && entry.snapshot ? entry.snapshot.data : Query.getData(k);
+          if (typeof cur !== 'undefined') return;
+          try { Query.fetch(k, typeof fetcher === 'function' ? fetcher : undefined, options); } catch {}
+        });
+      } else {
+        // Existing entry: do not auto-fetch on every render; consumer can call helpers.refetch/invalidate
+        // We still allow initial fetcher to be registered by Query; subsequent renders are no-ops here
+      }
+      const getData = () => (entry && entry.snapshot ? entry.snapshot.data : Query.getData(k));
+      const proxy = new Proxy({}, {
+        get(_t, prop) {
+          if (prop === '__raw__') return getData();
+          if (prop === 'toJSON') return () => getData() ?? null;
+          const d = getData();
+          if (d && typeof d === 'object') return d[prop];
+          return undefined;
+        },
+        has(_t, prop) {
+          const d = getData();
+          if (d && typeof d === 'object') return prop in d;
+          return false;
+        },
+        ownKeys() {
+          const d = getData();
+          if (d && typeof d === 'object') return Reflect.ownKeys(d);
+          return [];
+        },
+        getOwnPropertyDescriptor(_t, prop) {
+          const d = getData();
+          if (d && typeof d === 'object') return Object.getOwnPropertyDescriptor(d, prop);
+          return undefined;
+        }
+      });
+      const snap = entry.snapshot || { data: Query.getData(k), error: null, updatedAt: 0 };
+      const helpers = {
+        data: proxy,
+        error: snap.error,
+        updatedAt: snap.updatedAt,
+        refetch: () => Query.refetch(k),
+        invalidate: () => Query.invalidate(k),
+        remove: () => Query.remove(k),
+        invalidateTag: (tag) => Query.invalidateTag(tag)
+      };
+      return [proxy, helpers];
+    }
+
     // Reconcile and run effects after DOM has been patched
     _flushEffects() {
       this._effectsScheduled = false;
@@ -193,6 +270,15 @@ export function defineComponent(setup) {
         }
       }
       this._effects = [];
+      // Cleanup query subscriptions
+      if (this._hooks && this._hooks.length) {
+        for (const h of this._hooks) {
+          if (h && h.kind === 'query' && typeof h.unsub === 'function') {
+            try { h.unsub(); } catch {}
+            h.unsub = null;
+          }
+        }
+      }
       if (this._setupResult && typeof this._setupResult.onUnmount === 'function') {
         try { this._setupResult.onUnmount.call(this, this._buildCtx()); } catch {}
       }

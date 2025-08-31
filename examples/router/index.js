@@ -25,6 +25,7 @@ router
   .route('/composition', () => import('../pages/CompositionPage.js').then(m => m.CompositionPage))
   .route('/mutations', () => import('../pages/MutationsPage.js').then(m => m.MutationsPage))
   .route('/design', () => import('../pages/DesignSystemPage.js').then(m => m.DesignSystemPage))
-  .route('/forms', () => import('../pages/FormsPage.js').then(m => m.FormsPage));
+  .route('/forms', () => import('../pages/FormsPage.js').then(m => m.FormsPage))
+  .route('/functional', () => import('../pages/FunctionalPage.js').then(m => m.FunctionalPage));
 
 export { router };

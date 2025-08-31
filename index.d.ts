@@ -272,6 +272,8 @@ export interface FunctionalSetupContext<P = any> {
   useRef<T = any>(initial?: T): { current: T };
   useMemo<T>(factory: () => T, deps?: any[]): T;
   useEffect(effect: () => void | (() => void), deps?: any[]): void;
+  // Data
+  useQuery<T = any>(key: string, fetcher?: () => Promise<T>, options?: any): [T, { data: T; error: any; updatedAt: number; refetch: () => Promise<any>; invalidate: () => void; remove: () => void; invalidateTag: (tag: string) => void }];
   // Utilities
   html(strings: TemplateStringsArray, ...values: any[]): string;
   portal(target: string | Element, content: any, key?: string): any;

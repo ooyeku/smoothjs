@@ -8,3 +8,4 @@ export { ContextDemo } from './ContextDemo.js';
 export { PortalDemo } from './PortalDemo.js';
 export { ChildrenDemo } from './ChildrenDemo.js';
 export { SsrCounter } from './SsrCounter.js';
+export { FunctionalBadge } from './FunctionalBadge.js';

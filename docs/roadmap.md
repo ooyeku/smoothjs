@@ -76,3 +76,30 @@ We will deliver a function-first authoring model that wraps component creation, 
 
 Notes:
 - This document supersedes prior phase-based plans. All previous items are intentionally removed to keep focus on the functional migration.
+
+
+## Outstanding items (status: 2025-08-31)
+
+The following remain to complete the v1.0.0 roadmap:
+
+- Functional API surface
+  - Add useQuery hook in defineComponent context as a thin adapter over Query. (complete)
+- Documentation
+  - Add a new “Functional Components” chapter to docs/usage.md with patterns for state, effects, context, portals, and data via Query. (complete)
+  - Write a migration guide: choosing functional vs class; interop examples; common pitfalls. (complete)
+  - Update FAQ with performance, event delegation, security notes, and IDE/lint tips for hooks usage. (complete)
+- Examples
+  - Provide functional variants and/or pages for Counter and Forms demos. (complete)
+  - Add a dedicated “Functional” examples page tying together Counter, Fetch, Forms with the new API. (complete)
+  - Ensure all examples continue to operate with router, dark mode, and devtools enabled. (complete)
+- Testing & quality gates
+  - Extend parity tests for functional components: error boundaries, context propagation edge cases, portals updates, and event delegation breadth. (partially complete)
+  - Add SSR renderToString + hydrate interop tests for function components. (outstanding)
+  - Add integration tests exercising Query usage from functional components (SWR + invalidate). (complete)
+  - Measure bundle size impact of the functional layer and document target budget (<1 KB gz ideally). (outstanding)
+- Stability
+  - Track and resolve any P1 issues found during docs/examples/testing hardening prior to tagging v1.0.0. (ongoing)
+
+Notes:
+- Core functional component runtime, types, and initial example adoption are implemented.
+- This list will be updated as items are completed or re-scoped.
