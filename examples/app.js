@@ -1,5 +1,7 @@
-import { Component, createElement, $, $$, version } from '../index.js';
+import { Component, createElement, $, $$, version, DevTools } from '../index.js';
 import { StatCard } from './components/StatCard.js';
+// Enable minimal DevTools overlay (no-op in tests and only shows on errors)
+try { if (DevTools && typeof DevTools.enableOverlay === 'function') DevTools.enableOverlay(); } catch {}
 import { ActionButton } from './components/index.js';
 import { DataTable } from './components/index.js';
 import { DarkModeToggle } from './components/index.js';

@@ -55,7 +55,7 @@ Below is a concise evaluation of your library’s current state, followed by a p
   - Theme variants and dark mode system-wide toggles; responsive utilities.
   - Outcome: Out-of-the-box professional UX while remaining opt-in.
 
-### Phase 5: Tooling, types, and DX
+### Phase 5: Tooling, types, and DX — Completed (see src/devtools/index.js, index.d.ts [DevTools types], package.json [exports/types])
 - TypeScript types completeness
   - Generic-friendly types for components, store selectors, router params, http client responses, and query results.
   - Outcome: Strong editor IntelliSense and safe APIs.

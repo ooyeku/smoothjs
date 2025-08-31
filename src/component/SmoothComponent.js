@@ -438,6 +438,7 @@ export class SmoothComponent {
     } catch (error) {
       try { if (typeof this.onError === 'function') this.onError(error); } catch (e) { console.error('onError error:', e); }
       if (_shouldLogErrors()) console.error(`Error rendering component:`, error);
+      try { if (typeof window !== 'undefined' && window && window.dispatchEvent) window.dispatchEvent(new CustomEvent('smooth:error', { detail: { error, component: this } })); } catch {}
       if (this.element) {
         try {
           if (typeof this.renderError === 'function') {

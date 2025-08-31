@@ -191,6 +191,14 @@ export const Testing: {
   getAllByTestId(container: Element, testId: string): Element[];
 };
 
+// DevTools
+export const DevTools: {
+  enableOverlay(): void;
+  disableOverlay(): void;
+  setDebug(v: boolean): void;
+  time<T>(label: string, fn: () => T): T;
+};
+
 // Default export namespace
 declare const SmoothJS: {
   Component: typeof Component;
@@ -206,6 +214,7 @@ declare const SmoothJS: {
   version: string;
   SSR: typeof SSR;
   Query: typeof Query;
+  DevTools: typeof DevTools;
   Velvet: typeof Velvet;
   Testing: typeof Testing;
 };

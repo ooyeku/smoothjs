@@ -11,6 +11,9 @@ import { utils } from './src/utils/index.js';
 import SSR from './src/ssr/index.js';
 import { Query } from './src/data/query.js';
 
+// DevTools
+import DevTools from './src/devtools/index.js';
+
 // Velvet Design System
 import * as Velvet from './src/design-system/index.js';
 
@@ -34,6 +37,7 @@ const SmoothJS = {
   version,
   SSR,
   Query,
+  DevTools,
   Velvet,
   Testing
 };
@@ -43,5 +47,5 @@ if (typeof window !== 'undefined') {
   window.SmoothJS = SmoothJS;
 }
 
-export { Component, createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, SSR, Query, Velvet, Testing };
+export { Component, createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, SSR, Query, DevTools, Velvet, Testing };
 export default SmoothJS;

@@ -9,7 +9,9 @@
   "module": "index.js",
   "exports": {
     ".": {
-      "import": "./index.js"
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
     }
   },
   "unpkg": "./dist/smoothjs.min.js",
