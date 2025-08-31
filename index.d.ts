@@ -252,6 +252,7 @@ declare const SmoothJS: {
   $: typeof $;
   $$: typeof $$;
   version: string;
+  defineComponent: typeof defineComponent;
   SSR: typeof SSR;
   Query: typeof Query;
   DevTools: typeof DevTools;
@@ -262,3 +263,39 @@ declare const SmoothJS: {
   Forms: typeof Forms;
 };
 export default SmoothJS;
+
+
+// Functional components
+export interface FunctionalSetupContext<P = any> {
+  // Hooks
+  useState<T>(initial: T | (() => T)): [T, (next: T | ((prev: T) => T)) => void];
+  useRef<T = any>(initial?: T): { current: T };
+  useMemo<T>(factory: () => T, deps?: any[]): T;
+  useEffect(effect: () => void | (() => void), deps?: any[]): void;
+  // Utilities
+  html(strings: TemplateStringsArray, ...values: any[]): string;
+  portal(target: string | Element, content: any, key?: string): any;
+  provideContext(Context: any, value: any): void;
+  useContext<T = any>(Context: any): T;
+  on(event: string, selector: string | ((e: Event) => any), handler?: (e: Event) => any): any;
+  // Accessors
+  readonly props: P;
+  readonly children: any[];
+  readonly element: Element | null;
+  find<T extends Element = Element>(selector: string): T | null;
+  findAll<T extends Element = Element>(selector: string): T[];
+}
+
+export interface FunctionalSetupResult<P = any> {
+  render: (ctx?: FunctionalSetupContext<P>) => string | Node | null | undefined;
+  onMount?(): void;
+  onUnmount?(): void;
+  onPropsChange?(prev: P, next: P): void;
+  onError?(err: unknown): void;
+}
+
+export function defineComponent<P = any>(setup: (ctx: FunctionalSetupContext<P>) => FunctionalSetupResult<P>): new (
+  element?: Element | string | null,
+  initialState?: any,
+  props?: Partial<P>
+) => Component<any, P>;

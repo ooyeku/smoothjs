@@ -7,6 +7,9 @@ import { createElement, $, $$ } from './src/dom/index.js';
 import { http, HTTPError } from './src/net/http.js';
 import { utils } from './src/utils/index.js';
 
+// Functional components
+import { defineComponent } from './src/functional/defineComponent.js';
+
 // SSR and Data Query layer
 import SSR from './src/ssr/index.js';
 import { Query } from './src/data/query.js';
@@ -42,6 +45,7 @@ const SmoothJS = {
   $,
   $$,
   version,
+  defineComponent,
   SSR,
   Query,
   DevTools,
@@ -57,5 +61,5 @@ if (typeof window !== 'undefined') {
   window.SmoothJS = SmoothJS;
 }
 
-export { Component, createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, SSR, Query, DevTools, A11y, Velvet, Testing, Security, Forms };
+export { Component, createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, defineComponent, SSR, Query, DevTools, A11y, Velvet, Testing, Security, Forms };
 export default SmoothJS;
