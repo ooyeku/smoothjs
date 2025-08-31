@@ -9,6 +9,7 @@ export class DomPage extends Component {
 
   addItem() {
     const list = this.find('#dom-list');
+    if (!list) return;
     const idx = list.children.length + 1;
     const item = createElement('li', { className: 'row', dataset: { idx } },
       createElement('span', { style: { flex: 1 } }, `Item #${idx}`),

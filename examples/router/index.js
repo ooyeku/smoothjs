@@ -6,7 +6,7 @@ import { NotFound } from '../pages/NotFound.js';
 const router = new Router({
   mode: 'hash',
   root: '#app',
-  fallback: NotFound
+  notFound: NotFound
 });
 
 // Configure routes: keep Home eager; lazy-load others

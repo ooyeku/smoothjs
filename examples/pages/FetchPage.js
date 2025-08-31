@@ -80,8 +80,9 @@ export class FetchPage extends Component {
   }
 
   toggleBackgroundRefresh() {
-    this.setState({ backgroundRefresh: !this.state.backgroundRefresh });
-    if (this.state.backgroundRefresh) {
+    const next = !this.state.backgroundRefresh;
+    this.setState({ backgroundRefresh: next });
+    if (next) {
       // Start background refresh
       this.startBackgroundRefresh();
     } else {
@@ -94,6 +95,11 @@ export class FetchPage extends Component {
   }
 
   startBackgroundRefresh() {
+    // Ensure we don't create duplicate intervals
+    if (this._refreshInterval) {
+      try { clearInterval(this._refreshInterval); } catch {}
+      this._refreshInterval = null;
+    }
     this._refreshInterval = setInterval(() => {
       if (this.state.cacheEnabled && this.state.backgroundRefresh) {
         Query.refetch(this.state.queryKey);
@@ -104,6 +110,7 @@ export class FetchPage extends Component {
   onUnmount() {
     if (this._refreshInterval) {
       clearInterval(this._refreshInterval);
+      this._refreshInterval = null;
     }
     // Note: Query module doesn't have an unsubscribe method
     // The cache is automatically managed by the Query module
