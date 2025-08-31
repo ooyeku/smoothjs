@@ -39,7 +39,7 @@ Highlights:
   - Event delegation in components; microtask batching for updates; optimized Velvet style injection.
 
 Docs:
-- See docs/roadmap.md for the full feature breakdown and phased milestones (1–7), all marked completed.
+- See docs/roadmap.md for the v1.0.0 roadmap and full feature breakdown.
 
 Breaking changes:
 - None relative to the last pre-1.0 repository state; this codifies APIs as stable for 1.x.

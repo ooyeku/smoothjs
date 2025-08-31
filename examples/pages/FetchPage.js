@@ -9,6 +9,7 @@ export class FetchPage extends Component {
       data: null,
       cacheEnabled: true,
       backgroundRefresh: false,
+      swrEnabled: false,
       queryKey: 'demo-data'
     });
   }
@@ -18,8 +19,10 @@ export class FetchPage extends Component {
       .on('click', '#load', this.loadData)
       .on('click', '#load-cached', this.loadWithCache)
       .on('click', '#invalidate', this.invalidateCache)
+      .on('click', '#invalidate-tag', this.invalidateTag)
       .on('click', '#background-refresh', this.toggleBackgroundRefresh)
-      .on('change', '#cache-toggle', (e) => this.setState({ cacheEnabled: e.target.checked }));
+      .on('change', '#cache-toggle', (e) => this.setState({ cacheEnabled: e.target.checked }))
+      .on('change', '#swr-toggle', (e) => this.setState({ swrEnabled: e.target.checked }));
 
     // Auto-load data if cache exists
     this.loadWithCache();
@@ -53,7 +56,9 @@ export class FetchPage extends Component {
         {
           staleTime: 30000, // Cache for 30 seconds
           cacheTime: 300000, // Keep in memory for 5 minutes
-          refetchOnWindowFocus: this.state.backgroundRefresh
+          refetchOnWindowFocus: this.state.backgroundRefresh,
+          swr: this.state.swrEnabled,
+          tags: ['demo']
         }
       );
 
@@ -67,6 +72,11 @@ export class FetchPage extends Component {
   invalidateCache() {
     Query.invalidate(this.state.queryKey);
     console.log('Cache invalidated for:', this.state.queryKey);
+  }
+
+  invalidateTag() {
+    Query.invalidateTag('demo');
+    console.log('Tag invalidated: demo');
   }
 
   toggleBackgroundRefresh() {
@@ -123,6 +133,16 @@ export class FetchPage extends Component {
                   <span style="font-size: 0.875rem; color: #374151;">Enable Query Cache</span>
                 </label>
 
+                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                  <input
+                    type="checkbox"
+                    id="swr-toggle"
+                    ${this.state.swrEnabled ? 'checked' : ''}
+                    style="width: 1rem; height: 1rem;"
+                  >
+                  <span style="font-size: 0.875rem; color: #374151;">Enable SWR (stale-while-revalidate)</span>
+                </label>
+
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <button
                     id="background-refresh"
@@ -163,6 +183,13 @@ export class FetchPage extends Component {
                 >
                   Invalidate Cache
                 </button>
+
+                <button
+                  id="invalidate-tag"
+                  style="background: transparent; color: #6b7280; border: 1px dashed #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem;"
+                >
+                  Invalidate Tag "demo"
+                </button>
               </div>
             </div>
           </div>
@@ -194,6 +221,8 @@ export class FetchPage extends Component {
               <li><strong>Automatic Caching:</strong> 30s stale time, 5min cache time</li>
               <li><strong>Background Refresh:</strong> Refetch data automatically</li>
               <li><strong>Cache Invalidation:</strong> Manually clear cached data</li>
+              <li><strong>Tag Invalidation:</strong> Invalidate by tag (e.g., "demo") to refresh related queries</li>
+              <li><strong>SWR Mode:</strong> Stale-while-revalidate returns cached data and refreshes in background</li>
               <li><strong>Request Deduplication:</strong> Multiple calls use cached result</li>
               <li><strong>Error Recovery:</strong> Cached data shown on network failure</li>
             </ul>

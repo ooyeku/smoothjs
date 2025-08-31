@@ -50,7 +50,7 @@ Then explore the runnable examples:
 
 ## Links
 
-- Roadmap & phases: docs/roadmap.md
+- Roadmap: docs/roadmap.md
 - Changelog: CHANGELOG.md
 - License: MIT (LICENSE)
 

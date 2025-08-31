@@ -93,7 +93,7 @@ Error boundaries:
 
 - Throw in template() and implement renderError(err) to show a fallback. onError(err) also runs.
 ```javascript
-  import { Component } from 'smoothjs`
+  import { Component } from 'smoothjs';
   class Safe extends Component {
     renderError(err) { return this.html`<div class="error">${err.message}</div>`; }
     template() { if (this.props.crash) throw new Error('Boom'); return this.html`OK`; }
@@ -203,7 +203,7 @@ Focus preservation:
   const btn = new VelvetUI.Button(null, {}, { variant: 'primary', children: 'Click' });
   btn.mount('#host');
 
-- Style utilities:
+// Style utilities:
 
   class MyComp extends Velvet.VelvetComponent {
     template() {
@@ -240,7 +240,7 @@ import { Testing } from 'smoothjs';
   const { instance, container, unmount } = Testing.mount(MyComp);
   const btn = Testing.getByTestId(container, 'btn');
   Testing.fire(btn, 'click');
-  await Testing.waitFor(() => /* condition */);
+  await Testing.waitFor(() => { /* condition */ return true; });
   await Testing.act(() => Promise.resolve());
 ```
 
@@ -262,7 +262,7 @@ import { Testing } from 'smoothjs';
 ## Examples and docs
 
 - Browse the runnable examples: examples/index.html (served via Vite in dev).
-- See docs/roadmap.md for features and phases.
+- See docs/roadmap.md for the v1.0.0 roadmap and feature breakdown.
 - Check tests/ for usage patterns of core pieces.
 
 
