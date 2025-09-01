@@ -8,33 +8,11 @@ export interface MountOptions<P = any, S = any> {
   children?: any[];
 }
 
-export class Component<S = any, P = any> {
-  constructor(element?: Element | string | null, initialState?: Partial<S>, props?: Partial<P>);
+export interface ComponentLike<P = any> {
   element: Element | null;
-  state: S;
-  props: P;
-  children: any[];
-  // Lifecycle hooks
-  onCreate(): void;
-  onMount(): void;
-  onUnmount(): void;
-  onStateChange(prev: S, next: S): void;
-  onPropsChange(prev: P, next: P): void;
-  onError?(error: unknown): void;
-  renderError?(error: unknown): string | Node | null | undefined;
-  // Update helpers
-  static batch<T>(fn: () => T): T;
-  setChildren(children: any | any[]): void;
-  setState(update: Partial<S> | ((prev: S) => Partial<S>)): void;
-  setProps(update: Partial<P> | ((prev: P) => Partial<P>)): void;
-  template(): string | Node;
   html(strings: TemplateStringsArray, ...values: any[]): string;
-  bindEvents(): void;
-  on(event: string, selector: string, handler: (e: Event) => any): this;
-  on(event: string, handler: (e: Event) => any): this;
-  off(event: string, selector?: string): this;
-  mount(selector: string | Element, options?: MountOptions<P>): this;
-  hydrate(selector: string | Element, options?: MountOptions<P>): this;
+  mount(selector: string | Element, options?: MountOptions<P, any>): this;
+  hydrate(selector: string | Element, options?: MountOptions<P, any>): this;
   unmount(): void;
   find<T extends Element = Element>(selector: string): T | null;
   findAll<T extends Element = Element>(selector: string): T[];
@@ -47,14 +25,14 @@ export interface RouterBeforeEach {
 export interface RouterOptions {
   mode?: 'hash' | 'history';
   root?: string | Element;
-  notFound?: new () => Component<any, any>;
+  notFound?: new () => ComponentLike<any>;
   beforeEach?: RouterBeforeEach;
 }
 
 export type RouteTarget =
-  | (new () => Component<any, any>)
+  | (new () => ComponentLike<any>)
   | (() => Promise<any>)
-  | { component?: new () => Component<any, any>; load?: () => Promise<any>; children?: Array<{ path: string; component?: new () => Component<any, any>; load?: () => Promise<any>; }>; };
+  | { component?: new () => ComponentLike<any>; load?: () => Promise<any>; children?: Array<{ path: string; component?: new () => ComponentLike<any>; load?: () => Promise<any>; }>; };
 
 export class Router {
   constructor(options?: RouterOptions);
@@ -136,7 +114,7 @@ export const version: string;
 // SSR utilities
 export const SSR: {
   renderToString(
-    ComponentClass: new (...args: any[]) => Component<any, any>,
+    ComponentClass: new (...args: any[]) => ComponentLike<any>,
     options?: { props?: any; state?: any; containerId?: string | null }
   ): string;
 };
@@ -190,7 +168,7 @@ export const A11y: {
 
 // Testing utilities
 export const Testing: {
-  mount<T extends new (...args: any[]) => Component<any, any>>(Comp: T, options?: { props?: ConstructorParameters<T>[2]; state?: any; container?: Element | null }): { instance: InstanceType<T>; container: Element; unmount: () => void };
+  mount<T extends new (...args: any[]) => ComponentLike<any>>(Comp: T, options?: { props?: any; state?: any; container?: Element | null }): { instance: InstanceType<T>; container: Element; unmount: () => void };
   render(html?: string): { container: Element; unmount: () => void };
   fire(target: Element | null, type: string, init?: any): boolean;
   wait(ms?: number): Promise<void>;
@@ -241,7 +219,6 @@ export const DevTools: {
 
 // Default export namespace
 declare const SmoothJS: {
-  Component: typeof Component;
   Router: typeof Router;
   createStore: typeof createStore;
   createSelector: typeof createSelector;
@@ -300,4 +277,4 @@ export function defineComponent<P = any>(setup: (ctx: FunctionalSetupContext<P>)
   element?: Element | string | null,
   initialState?: any,
   props?: Partial<P>
-) => Component<any, P>;
+) => ComponentLike<P>;

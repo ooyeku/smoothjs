@@ -1,19 +1,6 @@
-import { Component, createElement, $, $$, version, DevTools, A11y } from '../index.js';
-import { StatCard } from './components/StatCard.js';
-import { ActionButton } from './components/index.js';
-import { DataTable } from './components/index.js';
+import { createElement, $, $$, version, DevTools, A11y } from '../index.js';
 import { DarkModeToggle } from './components/index.js';
-import { GlobalErrorBoundary } from './components/index.js';
 import { router } from './router/index.js';
-import { 
-  counterStore, 
-  preferencesStore, 
-  selectIsEven, 
-  selectDouble, 
-  selectCountCategory, 
-  selectAnimationDuration, 
-  selectAppStatus 
-} from './stores/index.js';
 import { FunctionalBadge } from './components/index.js';
 
 // Simple theme toggle function
@@ -74,19 +61,3 @@ if (document.readyState === 'loading') {
   startApp();
 }
 
-// Export components and utilities for external use
-export {
-  StatCard,
-  ActionButton,
-  DataTable,
-  DarkModeToggle,
-  GlobalErrorBoundary,
-  router,
-  counterStore,
-  preferencesStore,
-  selectIsEven,
-  selectDouble,
-  selectCountCategory,
-  selectAnimationDuration,
-  selectAppStatus
-};

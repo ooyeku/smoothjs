@@ -1,10 +1,10 @@
-import { Component, version, utils } from '../../index.js';
+import { defineComponent, version, utils } from '../../index.js';
 
-// About Page
-export class AboutPage extends Component {
-  template() {
+// About Page (functional)
+export const AboutPage = defineComponent(({ html }) => {
+  const render = () => {
     const now = new Date();
-    return this.html`
+    return html`
       <div>
         <h2>About</h2>
         <p>Running SmoothJS v${version}</p>
@@ -12,5 +12,6 @@ export class AboutPage extends Component {
         <p class="muted">Formatted number: ${utils.formatters.number(1234567.89)}</p>
       </div>
     `;
-  }
-}
+  };
+  return { render };
+});

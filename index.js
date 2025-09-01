@@ -1,5 +1,4 @@
 // Minimal ESM entry that composes SmoothJS from modular pieces
-import { SmoothComponent as Component } from './src/component/SmoothComponent.js';
 import { createContext } from './src/component/context.js';
 import { SmoothRouter as Router } from './src/router/SmoothRouter.js';
 import { createStore, createSelector } from './src/state/createStore.js';
@@ -33,7 +32,6 @@ import * as Forms from './src/forms/index.js';
 const version = '1.0.0';
 
 const SmoothJS = {
-  Component,
   createContext,
   Router,
   createStore,
@@ -61,5 +59,5 @@ if (typeof window !== 'undefined') {
   window.SmoothJS = SmoothJS;
 }
 
-export { Component, createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, defineComponent, SSR, Query, DevTools, A11y, Velvet, Testing, Security, Forms };
+export { createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, defineComponent, SSR, Query, DevTools, A11y, Velvet, Testing, Security, Forms };
 export default SmoothJS;

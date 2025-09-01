@@ -14,7 +14,6 @@ router
   .route('/', HomePage)
   .route('/todo', () => import('../pages/TodoPage.js').then(m => m.TodoPage))
   .route('/counter', () => import('../pages/CounterPage.js').then(m => m.CounterPage))
-  .route('/fetch', () => import('../pages/FetchPage.js').then(m => m.FetchPage))
   .route('/dom', () => import('../pages/DomPage.js').then(m => m.DomPage))
   .route('/users', () => import('../pages/UsersPage.js').then(m => m.UsersPage))
   .route('/users/:id', () => import('../users.js'))

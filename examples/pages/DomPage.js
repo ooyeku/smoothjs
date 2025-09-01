@@ -1,29 +1,23 @@
-import { Component, createElement } from '../../index.js';
+import { defineComponent, createElement } from '../../index.js';
 
-// DOM Demo Page
-export class DomPage extends Component {
-  onCreate() {
-    this.on('click', '#addItem', this.addItem)
-        .on('click', '#clearItems', this.clearItems);
-  }
-
-  addItem() {
-    const list = this.find('#dom-list');
+// DOM Demo Page (functional)
+export const DomPage = defineComponent(({ html, on, find }) => {
+  on('click', '#addItem', () => {
+    const list = find('#dom-list');
     if (!list) return;
     const idx = list.children.length + 1;
     const item = createElement('li', { className: 'row', dataset: { idx } },
       createElement('span', { style: { flex: 1 } }, `Item #${idx}`),
       createElement('button', { className: 'btn', onClick: () => alert(`Clicked ${idx}`) }, 'Click'));
     list.appendChild(item);
-  }
+  });
 
-  clearItems() { 
-    const list = this.find('#dom-list'); 
-    if (list) list.innerHTML = ''; 
-  }
+  on('click', '#clearItems', () => {
+    const list = find('#dom-list');
+    if (list) list.innerHTML = '';
+  });
 
-  template() {
-    return this.html`
+  const render = () => html`
       <div>
         <h2>DOM Utilities</h2>
         <div class="row" style="margin-bottom:.5rem;">
@@ -34,5 +28,6 @@ export class DomPage extends Component {
         <p class="muted">Built with createElement(), event handlers, and dataset/style/class usage. Try the buttons.</p>
       </div>
     `;
-  }
-}
+
+  return { render };
+});

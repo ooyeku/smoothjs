@@ -93,11 +93,15 @@ Error boundaries:
 
 - Throw in template() and implement renderError(err) to show a fallback. onError(err) also runs.
 ```javascript
-  import { Component } from 'smoothjs';
-  class Safe extends Component {
-    renderError(err) { return this.html`<div class="error">${err.message}</div>`; }
-    template() { if (this.props.crash) throw new Error('Boom'); return this.html`OK`; }
-  }
+  import { defineComponent } from 'smoothjs';
+  const Safe = defineComponent(({ html, props }) => {
+    const render = () => {
+      if (props.crash) throw new Error('Boom');
+      return html`OK`;
+    };
+    const onError = (err) => {};
+    return { render, onError };
+  });
 ```
 Focus preservation:
 

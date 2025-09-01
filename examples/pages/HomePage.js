@@ -1,9 +1,8 @@
-import { Component } from '../../index.js';
+import { defineComponent } from '../../index.js';
 
-// Home Page
-export class HomePage extends Component {
-  template() {
-    return this.html`
+// Home Page (functional)
+export const HomePage = defineComponent(({ html }) => {
+  const render = () => html`
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 16px; margin-bottom: 2rem; text-align: center;">
         <h1 style="margin: 0 0 1rem 0; font-size: 2.25rem; font-weight: 700;">SmoothJS</h1>
         <p style="margin: 0 0 1rem 0; font-size: 1.125rem; opacity: 0.9;">Explore minimal demos with beautiful design</p>
@@ -17,7 +16,6 @@ export class HomePage extends Component {
         ${[
           { href: '#/todo', title: 'Todo App', desc: 'Local state management with createStore' },
           { href: '#/counter', title: 'Counter', desc: 'Advanced global state with selectors' },
-          { href: '#/fetch', title: 'Data Fetching', desc: 'Query caching and network management' },
           { href: '#/dom', title: 'DOM Manipulation', desc: 'Direct DOM access and utilities' },
           { href: '#/users', title: 'User Management', desc: 'Dynamic routing with parameters' },
           { href: '#/loading-demo', title: 'Loading Demo', desc: 'Navigation guards with async validation' },
@@ -28,7 +26,7 @@ export class HomePage extends Component {
           { href: '#/design', title: 'Design System', desc: 'Buttons, Inputs, Modal, Tabs (a11y)'},
           { href: '#/error', title: 'Error Boundaries', desc: 'Error boundary fallback demo' },
           { href: '#/about', title: 'About', desc: 'Utilities, formatters, and version info' }
-        ].map(item => this.html`
+        ].map(item => html`
           <a href="${item.href}" style="display: block; padding: 1.5rem; background: var(--card); border-radius: 12px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); text-decoration: none; color: inherit; transition: all 250ms ease; border: 1px solid var(--border);">
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
               <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;">${item.title}</h3>
@@ -54,5 +52,5 @@ export class HomePage extends Component {
         </div>
       </div>
     `;
-  }
-}
+  return { render };
+});

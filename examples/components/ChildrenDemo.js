@@ -1,33 +1,29 @@
-import { Component } from '../../index.js';
+import { defineComponent } from '../../index.js';
 
-export class ChildrenDemo extends Component {
-  constructor() {
-    super(null, { count: 0 });
-  }
+export const ChildrenDemo = defineComponent(({ useState, html, on }) => {
+  const [count, setCount] = useState(0);
+  const [children, setChildren] = useState([]);
 
-  onCreate() {
-    this.on('click', '#add', () => {
-      const n = this.state.count + 1;
-      this.setState({ count: n });
-      // append a child snippet demonstrating dynamic children
-      const newChild = `<li data-key="c${n}">Child ${n}</li>`;
-      this.setChildren([ ...(this.children || []), newChild ]);
-    });
-    this.on('click', '#clear', () => {
-      this.setChildren([]);
-      this.setState({ count: 0 });
-    });
-  }
+  on('click', '#add', () => {
+    const n = Number(count) + 1;
+    setCount(n);
+    setChildren((prev) => [...(prev || []), `<li data-key="c${n}">Child ${n}</li>`]);
+  });
 
-  template() {
-    return this.html`
+  on('click', '#clear', () => {
+    setChildren([]);
+    setCount(0);
+  });
+
+  const render = () => html`
       <div>
         <div class="row">
           <button id="add" class="btn" type="button">Add Child</button>
           <button id="clear" class="btn" type="button">Clear</button>
         </div>
-        <ul class="list">${this.renderChildren()}</ul>
+        <ul class="list">${(children || []).join('')}</ul>
       </div>
     `;
-  }
-}
+
+  return { render };
+});

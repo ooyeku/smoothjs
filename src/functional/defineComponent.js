@@ -48,8 +48,13 @@ export function defineComponent(setup) {
         onMount: res.onMount,
         onUnmount: res.onUnmount,
         onPropsChange: res.onPropsChange,
-        onError: res.onError
+        onError: res.onError,
+        renderError: res.renderError
       };
+      // If user provided a renderError fallback, expose it as an instance method for SmoothComponent
+      if (typeof res.renderError === 'function') {
+        this.renderError = function(err) { return res.renderError.call(this, err); };
+      }
     }
 
     _buildCtx() {
@@ -86,10 +91,6 @@ export function defineComponent(setup) {
       if (!this._hooks[i]) {
         const initVal = (typeof initial === 'function') ? initial() : initial;
         const record = { v: initVal };
-        const access = {};
-        Object.defineProperty(access, 'value', { get() { return record.v; } });
-        access.valueOf = function() { return record.v; };
-        access.toString = function() { return String(record.v); };
         const set = (next) => {
           const prev = record.v;
           const value = (typeof next === 'function') ? next(prev) : next;
@@ -99,10 +100,10 @@ export function defineComponent(setup) {
             this._enqueueRender();
           }
         };
-        this._hooks[i] = { kind: 'state', record, access, set };
+        this._hooks[i] = { kind: 'state', record, set };
       }
       const ent = this._hooks[i];
-      return [ent.access, ent.set];
+      return [ent.record.v, ent.set];
     }
 
     _useRef(initial) {
@@ -297,12 +298,27 @@ export function defineComponent(setup) {
     }
 
     template() {
-      if (!this._setupRan) this._runSetup();
       this._hookIndex = 0;
       // Build a fresh ctx for user render each call
       const ctx = this._buildCtx();
-      const render = this._setupResult && this._setupResult.render;
-      const output = (typeof render === 'function') ? render.call(this, ctx) : '';
+      // Invoke setup on every render to compute current render with fresh state values
+      const res = setup(ctx) || {};
+      if (!this._setupRan) {
+        // Capture lifecycle callbacks only on first run
+        this._setupRan = true;
+        this._setupResult = {
+          render: res.render,
+          onMount: res.onMount,
+          onUnmount: res.onUnmount,
+          onPropsChange: res.onPropsChange,
+          onError: res.onError,
+          renderError: res.renderError
+        };
+        if (typeof res.renderError === 'function') {
+          this.renderError = function(err) { return res.renderError.call(this, err); };
+        }
+      }
+      const output = (typeof res.render === 'function') ? res.render.call(this, ctx) : '';
       // Schedule effect flush after this render cycle
       if (!this._effectsScheduled) {
         this._effectsScheduled = true;

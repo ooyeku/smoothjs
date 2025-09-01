@@ -1,39 +1,33 @@
-import { Component, Forms, Security } from '../../index.js';
+import { defineComponent, Forms, Security } from '../../index.js';
 
-export class FormsPage extends Component {
-  constructor() {
-    super(null, { preview: '', submitted: null });
-  }
+export const FormsPage = defineComponent(({ html, on, useState }) => {
+  // validators
+  const required = (v) => (!v ? 'Required' : '');
+  const email = (v) => (v && /.+@.+\..+/.test(v) ? '' : 'Invalid email');
 
-  onCreate() {
-    // validators
-    const required = (v) => (!v ? 'Required' : '');
-    const email = (v) => (v && /.+@.+\..+/.test(v) ? '' : 'Invalid email');
+  const form = Forms.createForm({ name: '', email: '', bio: '' }, { name: required, email });
 
-    this.form = Forms.createForm({ name: '', email: '', bio: '' }, {
-      name: required,
-      email
-    });
+  const [preview, setPreview] = useState('');
+  const [submitted, setSubmitted] = useState(null);
+  const [ver, setVer] = useState(0); // force re-render on form changes
 
-    this
-      .on('input', '#name', (e) => { this.form.handleChange(e); this.render(); })
-      .on('input', '#email', (e) => { this.form.handleChange(e); this.render(); })
-      .on('input', '#bio', (e) => { this.form.handleChange(e); this.setState({ preview: e.target.value }); })
-      .on('blur', '#name', (e) => { this.form.handleBlur(e); this.render(); })
-      .on('blur', '#email', (e) => { this.form.handleBlur(e); this.render(); })
-      .on('click', '#submit', async (e) => {
-        await this.form.handleSubmit(
-          (values) => { this.setState({ submitted: values }); },
-          () => { this.render(); }
-        )(e);
-      })
-      .on('click', '#reset', () => { this.form.reset(); this.setState({ preview: '', submitted: null }); });
-  }
+  on('input', '#name', (e) => { form.handleChange(e); setVer(v => v + 1); });
+  on('input', '#email', (e) => { form.handleChange(e); setVer(v => v + 1); });
+  on('input', '#bio', (e) => { form.handleChange(e); setPreview(e.target.value); setVer(v => v + 1); });
+  on('blur', '#name', (e) => { form.handleBlur(e); setVer(v => v + 1); });
+  on('blur', '#email', (e) => { form.handleBlur(e); setVer(v => v + 1); });
+  on('click', '#submit', async (e) => {
+    await form.handleSubmit(
+      (values) => { setSubmitted(values); },
+      () => { setVer(v => v + 1); }
+    )(e);
+  });
+  on('click', '#reset', () => { form.reset(); setPreview(''); setSubmitted(null); setVer(v => v + 1); });
 
-  template() {
-    const { values, errors, touched, dirty } = this.form || { values:{}, errors:{}, touched:{}, dirty:false };
-    const sanitized = Security.sanitize(this.state.preview || '');
-    return this.html`
+  const render = () => {
+    const { values, errors, touched, dirty } = form || { values:{}, errors:{}, touched:{}, dirty:false };
+    const sanitized = Security.sanitize(preview || '');
+    return html`
       <div style="max-width:768px; margin:0 auto; padding: 0.75rem 1rem;">
         <div style="background: var(--card); border:1px solid var(--border); border-radius:12px; padding:1rem 1.25rem;">
           <h2 style="margin:0 0 .75rem 0;">Forms + Security</h2>
@@ -41,12 +35,12 @@ export class FormsPage extends Component {
             <div>
               <label for="name" style="display:block; font-size:.9rem; margin-bottom:.25rem;">Name</label>
               <input id="name" name="name" class="input" value="${values.name || ''}" />
-              ${touched.name && errors.name ? this.html`<div class="notice" style="margin-top:.25rem; color:#dc2626;">${errors.name}</div>` : ''}
+              ${touched.name && errors.name ? html`<div class="notice" style="margin-top:.25rem; color:#dc2626;">${errors.name}</div>` : ''}
             </div>
             <div>
               <label for="email" style="display:block; font-size:.9rem; margin-bottom:.25rem;">Email</label>
               <input id="email" name="email" class="input" value="${values.email || ''}" />
-              ${touched.email && errors.email ? this.html`<div class="notice" style="margin-top:.25rem; color:#dc2626;">${errors.email}</div>` : ''}
+              ${touched.email && errors.email ? html`<div class="notice" style="margin-top:.25rem; color:#dc2626;">${errors.email}</div>` : ''}
             </div>
             <div>
               <label for="bio" style="display:block; font-size:.9rem; margin-bottom:.25rem;">Bio (supports limited HTML; preview is sanitized)</label>
@@ -66,14 +60,16 @@ export class FormsPage extends Component {
               ${sanitized}
             </div>
           </div>
-          ${this.state.submitted ? this.html`
+          ${submitted ? html`
             <div class="card" style="background: var(--card); border:1px solid var(--border); border-radius:12px; padding:1rem 1.25rem;">
               <h3 style="margin:0 0 .5rem 0;">Submitted Values</h3>
-              <pre style="margin:0; font-size:.85rem;">${JSON.stringify(this.state.submitted, null, 2)}</pre>
+              <pre style="margin:0; font-size:.85rem;">${JSON.stringify(submitted, null, 2)}</pre>
             </div>
           ` : ''}
         </div>
       </div>
     `;
-  }
-}
+  };
+
+  return { render };
+});
