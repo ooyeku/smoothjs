@@ -5,6 +5,7 @@ import { createStore, createSelector } from './src/state/createStore.js';
 import { createElement, $, $$ } from './src/dom/index.js';
 import { http, HTTPError } from './src/net/http.js';
 import { utils } from './src/utils/index.js';
+import { SmoothComponent as Component } from './src/component/SmoothComponent.js';
 
 // Functional components
 import { defineComponent } from './src/functional/defineComponent.js';
@@ -51,7 +52,8 @@ const SmoothJS = {
   Velvet,
   Testing,
   Security,
-  Forms
+  Forms,
+  Component
 };
 
 // Expose to window for convenience in browsers
@@ -59,5 +61,5 @@ if (typeof window !== 'undefined') {
   window.SmoothJS = SmoothJS;
 }
 
-export { createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, defineComponent, SSR, Query, DevTools, A11y, Velvet, Testing, Security, Forms };
+export { createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, defineComponent, SSR, Query, DevTools, A11y, Velvet, Testing, Security, Forms, Component };
 export default SmoothJS;

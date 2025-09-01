@@ -49,7 +49,7 @@ Start here:
 - docs/usage.md — detailed developer guide and how‑to for Components, Router, Query, SSR, Velvet, A11y, Forms, Security, Testing, and DevTools.
 
 Then explore the runnable examples:
-- examples/index.html (serve with `npm run dev`) — demos for counter, fetch, composition, design system, forms, SSR, etc.
+- examples/index.html (serve with `npm run dev`) — demos for counter, fetch, composition, design system, forms, and more.
 
 ## Links
 

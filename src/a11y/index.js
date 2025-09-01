@@ -10,9 +10,8 @@ function getFocusable(container) {
     'a[href]', 'button:not([disabled])', 'textarea:not([disabled])', 'input:not([disabled])',
     'select:not([disabled])', '[tabindex]:not([tabindex="-1"])'
   ];
-  const nodes = Array.from(container.querySelectorAll(selectors.join(',')));
-  // In non-browser test environments (e.g., JSDOM), size/rects may be zero; return nodes directly
-  return nodes;
+    // In non-browser test environments (e.g., JSDOM), size/rects may be zero; return nodes directly
+  return Array.from(container.querySelectorAll(selectors.join(',')));
 }
 
 export function focusTrap(container) {

@@ -18,6 +18,45 @@ export interface ComponentLike<P = any> {
   findAll<T extends Element = Element>(selector: string): T[];
 }
 
+// Class-based Component (runtime alias of SmoothComponent)
+export class Component<P = any, S = any> implements ComponentLike<P> {
+  constructor(element?: Element | null, initialState?: S, props?: P);
+  element: Element | null;
+  state: S;
+  props: P;
+
+  // Lifecycle hooks
+  onCreate(): void;
+  onMount(): void;
+  onUnmount(): void;
+  onStateChange(prevState: S, newState: S): void;
+  onPropsChange(prevProps: P, newProps: P): void;
+
+  // Core methods
+  html(strings: TemplateStringsArray, ...values: any[]): string;
+  template(): any;
+  render(): void;
+  mount(selector: string | Element, options?: MountOptions<P, S>): this;
+  hydrate(selector: string | Element, options?: MountOptions<P, S>): this;
+  unmount(): void;
+  find<T extends Element = Element>(selector: string): T | null;
+  findAll<T extends Element = Element>(selector: string): T[];
+
+  // State/props and events
+  setState(partial: Partial<S> | ((prev: S) => Partial<S>)): void;
+  setProps(next: Partial<P> | ((prev: P) => Partial<P>)): void;
+  on(event: string, selectorOrHandler: string | ((e: Event) => void), handler?: (e: Event) => void): void;
+  off(event?: string, selectorOrHandler?: string | ((e: Event) => void), handler?: (e: Event) => void): void;
+  emit<T = any>(target: Element, type: string, init?: CustomEventInit<T>): void;
+
+  // Context API
+  provideContext<T>(Context: symbol, value: T): void;
+  useContext<T>(Context: symbol): T | undefined;
+
+  // Utilities
+  portal(target: string | Element, content: any, key?: string): void;
+}
+
 export interface RouterBeforeEach {
   (to: string, from: string | null): boolean | void | string | Promise<boolean | void | string>;
 }
@@ -238,6 +277,7 @@ declare const SmoothJS: {
   Testing: typeof Testing;
   Security: typeof Security;
   Forms: typeof Forms;
+  Component: typeof Component;
 };
 export default SmoothJS;
 
