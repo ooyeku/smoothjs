@@ -12,7 +12,11 @@ const UserDetails = defineComponent(({ html, useState, props }) => {
     setTimeout(() => {
       if (abort) return;
       if (!id) {
-        setLoading(false); setError('Missing user id'); return;
+        // No user selected: render a friendly placeholder and skip fetching
+        setError(null);
+        setUser(null);
+        setLoading(false);
+        return;
       }
       const profiles = {
         '1': { id: 1, name: 'Ada Lovelace', role: 'Mathematician', bio: 'Pioneer of computing and the first programmer.' },
@@ -28,6 +32,10 @@ const UserDetails = defineComponent(({ html, useState, props }) => {
 
   const render = () => {
     const id = props && props.params ? props.params.id : null;
+    if (!id) {
+      // No selection placeholder
+      return html`<div class="muted">Select a user from the list to view details.</div>`;
+    }
     if (loading) {
       return html`<div><div class="muted">Loading details for user ${utils.escapeHtml(id || '?')}...</div></div>`;
     }
