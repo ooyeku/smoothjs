@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import fsSync, { promises as fs } from 'fs';
 import path from 'path';
 
 /**
@@ -131,6 +131,7 @@ export class ProjectScaffold {
       'components/Card.js': this.getCardComponentTemplate(),
       'pages/HomePage.js': this.getHomePageTemplate(),
       'pages/AboutPage.js': this.getAboutPageTemplate(),
+      'pages/NotFound.js': this.getNotFoundPageTemplate(),
       'stores/counter.js': this.getCounterStoreTemplate(),
       'router/routes.js': this.getRoutesTemplate()
     };
@@ -292,6 +293,39 @@ export class ProjectScaffold {
 
   // Template generators
   getPackageJsonTemplate() {
+    // Decide how to reference smoothjs:
+    // - If scaffolding inside or alongside the SmoothJS repo, point to the local package with a relative file: path
+    //   • Case A: scaffolding inside repo root => dependency should be file:..
+    //   • Case B: scaffolding from the repo's parent that contains ./smoothjs => dependency should be file:../smoothjs
+    // - Otherwise, fall back to the npm tag "latest" (for when the package is published)
+    let smoothDep = 'latest';
+    try {
+      // Case B: parent contains a 'smoothjs' folder that is a package
+      const siblingSmoothDir = path.join(this.targetDir, 'smoothjs');
+      const siblingPkg = path.join(siblingSmoothDir, 'package.json');
+      if (fsSync.existsSync(siblingPkg)) {
+        const txt = fsSync.readFileSync(siblingPkg, 'utf8');
+        const json = JSON.parse(txt);
+        if (json && json.name === 'smoothjs') {
+          const rel = path.relative(this.projectDir, siblingSmoothDir) || '..';
+          smoothDep = `file:${rel}`;
+        }
+      } else {
+        // Case A: scaffolding directly inside the smoothjs repo root
+        const candidatePkgPath = path.join(this.targetDir, 'package.json');
+        if (fsSync.existsSync(candidatePkgPath)) {
+          const txt = fsSync.readFileSync(candidatePkgPath, 'utf8');
+          const json = JSON.parse(txt);
+          if (json && json.name === 'smoothjs') {
+            // Compute relative path from the new project to the repo root
+            let rel = path.relative(this.projectDir, this.targetDir);
+            if (!rel || rel === '') rel = '..';
+            smoothDep = `file:${rel}`;
+          }
+        }
+      }
+    } catch {}
+
     return `{
   "name": "${this.projectName}",
   "version": "1.0.0",
@@ -304,7 +338,7 @@ export class ProjectScaffold {
     "test": "vitest"
   },
   "dependencies": {
-    "smoothjs": "latest"
+    "smoothjs": "${smoothDep}"
   },
   "devDependencies": {
     "vite": "^5.0.0",
@@ -387,8 +421,8 @@ class App extends Component {
         <header class="app-header">
           <h1>${this.projectName}</h1>
           <nav>
-            <a href="#/" data-router-link>Home</a>
-            <a href="#/about" data-router-link>About</a>
+            <a href="#/" data-router-link data-to="/">Home</a>
+            <a href="#/about" data-router-link data-to="/about">About</a>
           </nav>
         </header>
         
@@ -437,6 +471,7 @@ export { Card } from './Card.js';
     return `// Export all page components from this directory
 export { HomePage } from './HomePage.js';
 export { AboutPage } from './AboutPage.js';
+export { NotFound } from './NotFound.js';
 
 // Add new page exports here as you create them
 // export { NewPage } from './NewPage.js';`;
@@ -458,23 +493,8 @@ export const selectCount = createSelector(
   }
 
   getRouterIndexTemplate() {
-    return `import { Router } from 'smoothjs';
-import { HomePage } from '../pages/HomePage.js';
-import { AboutPage } from '../pages/AboutPage.js';
-
-// Create router instance
-export const router = new Router({
-  mode: 'hash',
-  root: '#app',
-  notFound: () => import('../pages/NotFound.js')
-});
-
-// Configure routes
-router
-  .route('/', HomePage)
-  .route('/about', AboutPage);
-
-// Add more routes here as you create new pages`;
+    return `// Re-export the router from routes.js to keep a single source of truth
+export { router } from './routes.js';`;
   }
 
   getUtilsIndexTemplate() {
@@ -799,38 +819,19 @@ export class Card extends Component {
 
   getHomePageTemplate() {
     return `import { Component } from 'smoothjs';
-import { Button } from '../components/Button.js';
-import { Card } from '../components/Card.js';
 
 export class HomePage extends Component {
   template() {
     return this.html\`
       <div class="home-page">
         <h2>Welcome to ${this.projectName}</h2>
-        
-        <div class="hero-section">
-          <p>This is a SmoothJS application with a well-organized structure.</p>
-          <Button 
-            text="Get Started" 
-            variant="primary" 
-            size="lg"
-            onClick={() => console.log('Get Started clicked!')}
-          />
-        </div>
-        
-        <div class="features-grid">
-          <Card 
-            title="Components"
-            content="Reusable UI components in the components/ directory"
-          />
-          <Card 
-            title="Pages"
-            content="Page components in the pages/ directory"
-          />
-          <Card 
-            title="State Management"
-            content="Stores and selectors in the stores/ directory"
-          />
+        <p>This is a minimal SmoothJS app scaffold. Routing and rendering are working.</p>
+        <nav style="margin: .5rem 0; display: flex; gap: .5rem;">
+          <a href="#/" data-router-link data-to="/">Home</a>
+          <a href="#/about" data-router-link data-to="/about">About</a>
+        </nav>
+        <div class="card" style="margin-top:1rem; padding:1rem; border:1px solid #e5e7eb; border-radius:8px;">
+          <p>Edit pages/HomePage.js to get started.</p>
         </div>
       </div>
     \`;
@@ -846,27 +847,23 @@ export class AboutPage extends Component {
     return this.html\`
       <div class="about-page">
         <h2>About ${this.projectName}</h2>
-        
-        <div class="about-content">
-          <p>This application demonstrates the recommended SmoothJS project structure:</p>
-          
-          <ul>
-            <li><strong>components/</strong> - Reusable UI components</li>
-            <li><strong>pages/</strong> - Page components</li>
-            <li><strong>stores/</strong> - State management</li>
-            <li><strong>router/</strong> - Routing configuration</li>
-            <li><strong>utils/</strong> - Utility functions</li>
-            <li><strong>styles/</strong> - CSS and styling</li>
-          </ul>
-          
-          <p>This structure promotes:</p>
-          <ul>
-            <li>Code organization and maintainability</li>
-            <li>Component reusability</li>
-            <li>Clear separation of concerns</li>
-            <li>Easy testing and debugging</li>
-          </ul>
-        </div>
+        <p>This page is part of the default SmoothJS scaffold.</p>
+      </div>
+    \`;
+  }
+}`;
+  }
+
+  getNotFoundPageTemplate() {
+    return `import { Component } from 'smoothjs';
+
+export class NotFound extends Component {
+  template() {
+    return this.html\`
+      <div class="not-found">
+        <h2>Page Not Found</h2>
+        <p>The page you requested could not be found.</p>
+        <a href="#/" data-router-link data-to="/">Go Home</a>
       </div>
     \`;
   }
@@ -908,12 +905,13 @@ export const counterActions = {
     return `import { Router } from 'smoothjs';
 import { HomePage } from '../pages/HomePage.js';
 import { AboutPage } from '../pages/AboutPage.js';
+import { NotFound } from '../pages/NotFound.js';
 
 // Create router instance
 export const router = new Router({
   mode: 'hash',
   root: '#app',
-  notFound: () => import('../pages/NotFound.js')
+  notFound: NotFound
 });
 
 // Configure routes

@@ -11,7 +11,7 @@ import path from 'path';
 export async function createProject(projectName, options = {}) {
   if (!projectName) {
     console.error('Project name is required');
-    console.log('Usage: npx smoothjs create <project-name>');
+    console.log('Usage: npx smoothjs create <project-name> (or: npx smoothjs-cli create <project-name>)');
     process.exit(1);
   }
 

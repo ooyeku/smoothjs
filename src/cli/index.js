@@ -30,7 +30,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     case 'create':
       if (!args[0]) {
         console.error('Project name is required');
-        console.log('Usage: npx smoothjs create <project-name> [target-dir]');
+        console.log('Usage: npx smoothjs create <project-name> [target-dir] (or: npx smoothjs-cli create <project-name> [target-dir])');
         process.exit(1);
       }
       createProject(args[0], { target: args[1] });
@@ -48,7 +48,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     case 'add':
       if (!args[0] || !args[1]) {
         console.error('Type and name are required');
-        console.log('Usage: npx smoothjs add <type> <name> [project-path]');
+        console.log('Usage: npx smoothjs add <type> <name> [project-path] (or: npx smoothjs-cli add <type> <name> [project-path])');
         console.log('Types: component, page, store, util');
         process.exit(1);
       }
@@ -78,11 +78,11 @@ function showHelp() {
   console.log('');
   console.log('  create <project-name> [target-dir]');
   console.log('    Create a new SmoothJS project with recommended structure');
-  console.log('    Example: npx smoothjs create my-app');
+  console.log('    Example: npx smoothjs create my-app (or: npx smoothjs-cli create my-app)');
   console.log('');
   console.log('  validate [project-path]');
   console.log('    Validate existing project structure against best practices');
-  console.log('    Example: npx smoothjs validate');
+  console.log('    Example: npx smoothjs validate (or: npx smoothjs-cli validate)');
   console.log('');
   console.log('  add <type> <name> [project-path]');
   console.log('    Add new items to existing projects');
@@ -93,13 +93,13 @@ function showHelp() {
   console.log('    Show this help message');
   console.log('');
   console.log('Examples:');
-  console.log('  npx smoothjs create my-app');
-  console.log('  npx smoothjs create my-app ./projects');
-  console.log('  npx smoothjs validate');
-  console.log('  npx smoothjs add component Button');
-  console.log('  npx smoothjs add page UserProfile');
-  console.log('  npx smoothjs add store user');
-  console.log('  npx smoothjs add util helpers');
+  console.log('  npx smoothjs create my-app (or: npx smoothjs-cli create my-app)');
+  console.log('  npx smoothjs create my-app ./projects (or: npx smoothjs-cli create my-app ./projects)');
+  console.log('  npx smoothjs validate (or: npx smoothjs-cli validate)');
+  console.log('  npx smoothjs add component Button (or: npx smoothjs-cli add component Button)');
+  console.log('  npx smoothjs add page UserProfile (or: npx smoothjs-cli add page UserProfile)');
+  console.log('  npx smoothjs add store user (or: npx smoothjs-cli add store user)');
+  console.log('  npx smoothjs add util helpers (or: npx smoothjs-cli add util helpers)');
   console.log('');
   console.log('Project Structure:');
   console.log('  [projectname]/');
