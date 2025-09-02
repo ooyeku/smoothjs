@@ -395,10 +395,14 @@ ${this.projectName}/
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0ea5e9" />
   <title>${this.projectName}</title>
-  <link rel="stylesheet" href="./styles/index.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/index.css" />
 </head>
 <body>
   <div id="app"></div>
@@ -419,19 +423,25 @@ class App extends Component {
     return this.html\`
       <div class="app">
         <header class="app-header">
-          <h1>${this.projectName}</h1>
-          <nav>
-            <a href="#/" data-router-link data-to="/">Home</a>
-            <a href="#/about" data-router-link data-to="/about">About</a>
-          </nav>
+          <div class="container">
+            <nav>
+              <span class="brand">${this.projectName}</span>
+              <a href="#/" data-router-link data-to="/">Home</a>
+              <a href="#/about" data-router-link data-to="/about">About</a>
+            </nav>
+          </div>
         </header>
         
         <main class="app-main">
-          <div data-router-outlet></div>
+          <div class="container">
+            <div data-router-outlet></div>
+          </div>
         </main>
         
         <footer class="app-footer">
-          <p>Built with SmoothJS v\${version}</p>
+          <div class="container">
+            <p>Built with SmoothJS v\${version}</p>
+          </div>
         </footer>
       </div>
     \`;
@@ -537,104 +547,65 @@ export function generateId() {
   }
 
   getStylesIndexTemplate() {
-    return `/* Main application styles */
-
+    return `/* Base styles */
 :root {
-  --primary-color: #0ea5e9;
-  --secondary-color: #6b7280;
-  --success-color: #059669;
-  --warning-color: #d97706;
-  --danger-color: #dc2626;
-  --background-color: #ffffff;
-  --text-color: #111827;
-  --border-color: #e5e7eb;
+  --primary: #0ea5e9;
+  --bg: #f7f9fc;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
 }
 
-* {
-  box-sizing: border-box;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1220;
+    --card: #0f1a2b;
+    --text: #ffffff;
+    --muted: #cbd5e1;
+    --border: #334155;
+  }
 }
 
+* { box-sizing: border-box; }
+html, body { height: 100%; }
 body {
   margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.6;
-  color: var(--text-color);
-  background-color: var(--background-color);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
 }
 
-.app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
 
-.app-header {
-  background-color: var(--background-color);
-  border-bottom: 1px solid var(--border-color);
-  padding: 1rem 2rem;
-}
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+.container { max-width: 960px; margin: 0 auto; padding: 0 1rem; }
 
-.app-header h1 {
-  margin: 0;
-  color: var(--primary-color);
-}
+.app-header { background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+.app-header .brand { font-weight: 700; margin-right: .5rem; color: inherit; }
+.app-header nav { display: flex; flex-wrap: wrap; gap: .5rem .65rem; align-items: center; padding: .75rem 0; }
+.app-header a[data-router-link] { padding: .4rem .65rem; border-radius: 8px; color: var(--primary); text-decoration: none; transition: background-color .2s ease, color .2s ease; }
+.app-header a[data-router-link]:hover { background: rgba(14,165,233,.12); }
+.app-header a.active { background: rgba(14,165,233,.18); }
 
-.app-header nav {
-  margin-top: 0.5rem;
-}
+.app-main { flex: 1; padding: 1.25rem 0; }
+.app-footer { border-top: 1px solid var(--border); color: var(--muted); padding: 1.25rem 0; }
 
-.app-header nav a {
-  color: var(--text-color);
-  text-decoration: none;
-  margin-right: 1rem;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; box-shadow: 0 6px 20px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.06); }
 
-.app-header nav a:hover {
-  background-color: var(--border-color);
-}
+.btn { background: var(--primary); color: #fff; border: 0; padding: .55rem .9rem; border-radius: 8px; cursor: pointer; box-shadow: 0 6px 14px rgba(14,165,233,.24); transition: transform .15s ease, box-shadow .2s ease; }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 10px 18px rgba(14,165,233,.28); }
+.btn:disabled { opacity: .6; cursor: default; box-shadow: none; }
 
-.app-main {
-  flex: 1;
-  padding: 2rem;
-}
+.input { width: 100%; padding: .6rem .75rem; border: 1px solid var(--border); background: var(--card); color: inherit; border-radius: 8px; }
 
-.app-footer {
-  background-color: var(--background-color);
-  border-top: 1px solid var(--border-color);
-  padding: 1rem 2rem;
-  text-align: center;
-  color: var(--secondary-color);
-}
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
 
-/* Component styles */
-.btn {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--primary-color);
-  border-radius: 4px;
-  background-color: var(--primary-color);
-  color: white;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:hover {
-  background-color: transparent;
-  color: var(--primary-color);
-}
-
-.card {
-  background-color: var(--background-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}`;
+.hero { background: linear-gradient(135deg, #0ea5e9 0%, #22d3ee 100%); color: white; border-radius: 14px; padding: 1.5rem; }
+.hero h2 { margin: 0 0 .25rem 0; }
+.hero p { margin: 0; opacity: .95; }`;
   }
 
   getGitignoreTemplate() {
@@ -824,15 +795,21 @@ export class HomePage extends Component {
   template() {
     return this.html\`
       <div class="home-page">
-        <h2>Welcome to ${this.projectName}</h2>
-        <p>This is a minimal SmoothJS app scaffold. Routing and rendering are working.</p>
-        <nav style="margin: .5rem 0; display: flex; gap: .5rem;">
-          <a href="#/" data-router-link data-to="/">Home</a>
-          <a href="#/about" data-router-link data-to="/about">About</a>
-        </nav>
-        <div class="card" style="margin-top:1rem; padding:1rem; border:1px solid #e5e7eb; border-radius:8px;">
-          <p>Edit pages/HomePage.js to get started.</p>
-        </div>
+        <section class="hero">
+          <h2>Welcome to ${this.projectName}</h2>
+          <p>Minimal SmoothJS starter. Clean UI, ready to build.</p>
+        </section>
+        <section class="grid" style="margin-top:1rem;">
+          <div class="card">
+            <h3 style="margin:.25rem 0 .5rem;">Get started</h3>
+            <p class="muted" style="margin:0 0 .5rem;">Edit <code>pages/HomePage.js</code> and <code>styles/index.css</code>.</p>
+            <p style="margin:0">Routing, state, and utilities are available out of the box.</p>
+          </div>
+          <a class="card" href="#/about" data-router-link data-to="/about" style="display:block;">
+            <h3 style="margin:.25rem 0 .5rem;">About</h3>
+            <p class="muted" style="margin:0">See a basic secondary page and link handling.</p>
+          </a>
+        </section>
       </div>
     \`;
   }
