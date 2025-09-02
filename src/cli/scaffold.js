@@ -412,57 +412,49 @@ ${this.projectName}/
   }
 
   getAppJsTemplate() {
-    return `import { Component, Router, createStore, createElement, $, $$, version } from 'smoothjs';
-import { HomePage } from './pages/HomePage.js';
-import { AboutPage } from './pages/AboutPage.js';
+    return `import { defineComponent, version, Velvet } from 'smoothjs';
 import { router } from './router/routes.js';
 
-// Main application component
-class App extends Component {
-  template() {
-    return this.html\`
-      <div class="app">
-        <header class="app-header">
-          <div class="container">
+// Functional root App
+const App = defineComponent(({ html }) => {
+  const render = () => html\`
+      <div class=\"app\">
+        <header class=\"app-header\">
+          <div class=\"container\">
             <nav>
-              <span class="brand">${this.projectName}</span>
-              <a href="#/" data-router-link data-to="/">Home</a>
-              <a href="#/about" data-router-link data-to="/about">About</a>
+              <span class=\"brand\">${this.projectName}</span>
+              <a href=\"#/\" data-router-link data-to=\"/\">Home</a>
+              <a href=\"#/about\" data-router-link data-to=\"/about\">About</a>
             </nav>
           </div>
         </header>
-        
-        <main class="app-main">
-          <div class="container">
+        <main class=\"app-main\">
+          <div class=\"container\">
             <div data-router-outlet></div>
           </div>
         </main>
-        
-        <footer class="app-footer">
-          <div class="container">
+        <footer class=\"app-footer\">
+          <div class=\"container\">
             <p>Built with SmoothJS v\${version}</p>
           </div>
         </footer>
-      </div>
-    \`;
-  }
-}
+      </div>\`;
+  return { render };
+});
 
 // Initialize the application
 function startApp() {
+  // Inject Velvet CSS variables for design tokens
+  try { Velvet && typeof Velvet.injectThemeVariables === 'function' && Velvet.injectThemeVariables(); } catch {}
   const appElement = document.querySelector('#app');
-  if (appElement) {
-    const app = new App();
-    app.mount(appElement);
-    
-    // Start the router
-    router.start();
-  }
+  if (!appElement) return;
+  const app = new App();
+  app.mount(appElement);
+  router.start();
 }
 
-// Start when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startApp);
+  document.addEventListener('DOMContentLoaded', startApp, { once: true });
 } else {
   startApp();
 }`;
@@ -703,97 +695,44 @@ temp/`;
   }
 
   getButtonComponentTemplate() {
-    return `import { Component } from 'smoothjs';
+    return `import { defineComponent, Velvet } from 'smoothjs';
 
-export class Button extends Component {
-  constructor() {
-    super(null, {
-      text: 'Button',
-      variant: 'primary',
-      size: 'md',
-      disabled: false,
-      onClick: null
-    });
-  }
-
-  onCreate() {
-    if (this.props.onClick) {
-      this.on('click', 'button', this.props.onClick);
-    }
-  }
-
-  template() {
-    const variants = {
-      primary: 'btn btn-primary',
-      secondary: 'btn btn-secondary',
-      outline: 'btn btn-outline'
-    };
-
-    const sizes = {
-      sm: 'btn-sm',
-      md: 'btn-md',
-      lg: 'btn-lg'
-    };
-
-    const classes = [
-      variants[this.props.variant] || variants.primary,
-      sizes[this.props.size] || sizes.md
-    ].join(' ');
-
-    return this.html\`
-      <button 
-        class="\${classes}"
-        \${this.props.disabled ? 'disabled' : ''}
-      >
-        \${this.props.text}
-      </button>
-    \`;
-  }
-}`;
+export const Button = defineComponent((ctx) => {
+  const { html, on, props } = ctx;
+  const { vs } = Velvet.useVelvet(ctx);
+  on('click', 'button', (e) => { try { props && props.onClick && props.onClick(e); } catch {} });
+  const cls = vs({
+    base: { padding: '0.55rem 0.9rem', backgroundColor: 'var(--color-primary-500, #0ea5e9)', color: '#fff', border: '0', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 6px 14px rgba(14,165,233,.24)', transition: 'transform .15s ease, box-shadow .2s ease' },
+    hover: { transform: 'translateY(-1px)', boxShadow: '0 10px 18px rgba(14,165,233,.28)' },
+    dark: { color: '#fff' }
+  });
+  const render = () => html\`
+    <button class=\"\${cls}\" \${props && props.disabled ? 'disabled' : ''}>\${(props && props.text) || 'Button'}</button>
+  \`;
+  return { render };
+});`;
   }
 
   getCardComponentTemplate() {
-    return `import { Component } from 'smoothjs';
+    return `import { defineComponent } from 'smoothjs';
 
-export class Card extends Component {
-  constructor() {
-    super(null, {
-      title: '',
-      content: '',
-      footer: null
-    });
-  }
-
-  template() {
-    return this.html\`
-      <div class="card">
-        \${this.props.title ? this.html\`
-          <div class="card-header">
-            <h3 class="card-title">\${this.props.title}</h3>
-          </div>
-        \` : ''}
-        
-        <div class="card-body">
-          \${this.props.content}
-        </div>
-        
-        \${this.props.footer ? this.html\`
-          <div class="card-footer">
-            \${this.props.footer}
-          </div>
-        \` : ''}
+export const Card = defineComponent(({ html, props }) => {
+  const render = () => html\`
+      <div class=\"card\">
+        \${props && props.title ? html\`<div class=\"card-header\"><h3 class=\"card-title\">\${props.title}</h3></div>\` : ''}
+        <div class=\"card-body\">\${props && props.content ? props.content : ''}</div>
+        \${props && props.footer ? html\`<div class=\"card-footer\">\${props.footer}</div>\` : ''}
       </div>
     \`;
-  }
-}`;
+  return { render };
+});`;
   }
 
   getHomePageTemplate() {
-    return `import { Component } from 'smoothjs';
+    return `import { defineComponent } from 'smoothjs';
 
-export class HomePage extends Component {
-  template() {
-    return this.html\`
+export const HomePage = defineComponent(({ html }) => {
+  const render = () => html\`
       <div class="home-page">
         <section class="hero">
           <h2>Welcome to ${this.projectName}</h2>
@@ -810,41 +749,36 @@ export class HomePage extends Component {
             <p class="muted" style="margin:0">See a basic secondary page and link handling.</p>
           </a>
         </section>
-      </div>
-    \`;
-  }
-}`;
+      </div>\`;
+  return { render };
+});`;
   }
 
   getAboutPageTemplate() {
-    return `import { Component } from 'smoothjs';
+    return `import { defineComponent } from 'smoothjs';
 
-export class AboutPage extends Component {
-  template() {
-    return this.html\`
-      <div class="about-page">
+export const AboutPage = defineComponent(({ html }) => {
+  const render = () => html\`
+      <div class=\"about-page\">
         <h2>About ${this.projectName}</h2>
         <p>This page is part of the default SmoothJS scaffold.</p>
-      </div>
-    \`;
-  }
-}`;
+      </div>\`;
+  return { render };
+});`;
   }
 
   getNotFoundPageTemplate() {
-    return `import { Component } from 'smoothjs';
+    return `import { defineComponent } from 'smoothjs';
 
-export class NotFound extends Component {
-  template() {
-    return this.html\`
-      <div class="not-found">
+export const NotFound = defineComponent(({ html }) => {
+  const render = () => html\`
+      <div class=\"not-found\">
         <h2>Page Not Found</h2>
         <p>The page you requested could not be found.</p>
-        <a href="#/" data-router-link data-to="/">Go Home</a>
-      </div>
-    \`;
-  }
-}`;
+        <a href=\"#/\" data-router-link data-to=\"/\">Go Home</a>
+      </div>\`;
+  return { render };
+});`;
   }
 
   getCounterStoreTemplate() {

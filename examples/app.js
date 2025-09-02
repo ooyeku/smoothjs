@@ -1,4 +1,4 @@
-import { createElement, $, $$, version, DevTools, A11y } from '../index.js';
+import { createElement, $, $$, version, DevTools, A11y, Velvet } from '../index.js';
 import { DarkModeToggle } from './components/index.js';
 import { router } from './router/index.js';
 import { FunctionalBadge } from './components/index.js';
@@ -23,6 +23,8 @@ if (savedTheme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('theme', theme);
 }
+// Inject CSS variables from Velvet theme
+try { Velvet && typeof Velvet.injectThemeVariables === 'function' && Velvet.injectThemeVariables(); } catch {}
 
 // Add a skip link for keyboard users
 try { A11y && typeof A11y.createSkipLink === 'function' && A11y.createSkipLink('#app'); } catch {}
