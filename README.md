@@ -13,36 +13,40 @@ A tiny, batteries‑included JavaScript framework for building simple frontends 
 ## Install
 
 npm
+```
 npm i smoothjs
-
+```
 pnpm
+```
 pnpm add smoothjs
+```
 
 yarn
+```
 yarn add smoothjs
-
+```
 Minimal usage:
-
+```
 import SmoothJS, { defineComponent } from 'smoothjs';
 const App = defineComponent(({ html }) => {
   const render = () => html`<h1>Hello SmoothJS</h1>`;
   return { render };
 });
 new App().mount('#app');
-
+```
 CDN:
-
+```
 <script type="module">
   import SmoothJS, { defineComponent } from 'https://unpkg.com/smoothjs@latest/dist/smoothjs.min.js';
   const App = defineComponent(({ html }) => ({ render: () => html`<h1>Hello</h1>` }));
   new App().mount('#app');
 </script>
-
+```
 CLI (optional):
-
+```
 npx smoothjs create my-app
 npx smoothjs serve . --port 5173
-
+```
 ## Learn the framework
 
 Start here:
