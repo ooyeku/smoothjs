@@ -231,18 +231,33 @@ export class SmoothComponent {
         rec = { targetEl, containerEl };
         this._portalMap.set(p.key, rec);
       }
-      // Build new content fragment
-      const tmp = document.createElement('div');
+      // Build new content fragment using Range#createContextualFragment
+      let frag = document.createDocumentFragment();
       const c = (typeof p.content === 'function') ? p.content.call(this, this) : p.content;
-      if (typeof c === 'string') tmp.innerHTML = c;
-      else if (c instanceof Node) tmp.appendChild(c.cloneNode(true));
-      else if (Array.isArray(c)) tmp.innerHTML = c.join('');
-      else if (c != null) tmp.textContent = String(c);
+      if (typeof c === 'string') {
+        try {
+          const range = document.createRange();
+          range.selectNode(rec.containerEl);
+          frag = range.createContextualFragment(c);
+        } catch {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = c;
+          while (tmp.firstChild) frag.appendChild(tmp.firstChild);
+        }
+      } else if (c instanceof Node) {
+        frag.appendChild(c);
+      } else if (Array.isArray(c)) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = c.join('');
+        while (tmp.firstChild) frag.appendChild(tmp.firstChild);
+      } else if (c != null) {
+        frag.appendChild(document.createTextNode(String(c)));
+      }
       // Patch target container children
       this._patchChildren(
         rec.containerEl,
         Array.from(rec.containerEl.childNodes),
-        Array.from(tmp.childNodes)
+        Array.from(frag.childNodes)
       );
     }
     this._pendingPortals.length = 0;
@@ -284,7 +299,8 @@ export class SmoothComponent {
   }
   _patch(parent, oldNode, newNode) {
     if (!oldNode && newNode) {
-      parent.appendChild(newNode.cloneNode(true));
+      // Insert the actual parsed node (move from fragment), avoid cloning
+      parent.appendChild(newNode);
       return;
     }
     if (oldNode && !newNode) {
@@ -292,7 +308,8 @@ export class SmoothComponent {
       return;
     }
     if (!this._sameType(oldNode, newNode)) {
-      parent.replaceChild(newNode.cloneNode(true), oldNode);
+      // Replace with the actual node
+      parent.replaceChild(newNode, oldNode);
       return;
     }
     if (this._isText(oldNode) && this._isText(newNode)) {
@@ -307,57 +324,112 @@ export class SmoothComponent {
     // Determine if keyed reconciliation should be used
     const hasKeys = newChildren.some(n => this._getKey(n) != null) || oldChildren.some(n => this._getKey(n) != null);
     if (hasKeys) {
-      const oldMap = new Map();
-      oldChildren.forEach((child, idx) => {
-        const k = this._getKey(child);
-        if (k != null) oldMap.set(String(k), { child, idx });
-      });
-      let lastPlacedIndex = 0;
-      let i = 0;
-      for (const newChild of newChildren) {
-        const key = this._getKey(newChild);
-        if (key == null) {
-          // unkeyed new child, try to align by position relative to lastPlacedIndex
-          const oldAtI = parentEl.childNodes[i];
-          this._patch(parentEl, oldAtI || null, newChild);
-          i++;
-          continue;
-        }
-        const rec = oldMap.get(String(key));
-        if (rec) {
-          // Move existing node to correct position if needed and patch
-          const currentNode = rec.child;
-          // Find current index of currentNode
-          const currentIndex = Array.prototype.indexOf.call(parentEl.childNodes, currentNode);
-          const referenceNode = parentEl.childNodes[i] || null;
-          if (currentIndex !== i) {
-            parentEl.insertBefore(currentNode, referenceNode);
-          }
-          this._patch(parentEl, currentNode, newChild);
-          oldMap.delete(String(key));
-          i++;
-        } else {
-          // New node, insert at position i
-          const ref = parentEl.childNodes[i] || null;
-          parentEl.insertBefore(newChild.cloneNode(true), ref);
-          i++;
+      // Build maps for old keyed children
+      const oldKeyToNode = new Map();
+      const oldKeyToIndex = new Map();
+      for (let i = 0; i < oldChildren.length; i++) {
+        const k = this._getKey(oldChildren[i]);
+        if (k != null) {
+          const key = String(k);
+          oldKeyToNode.set(key, oldChildren[i]);
+          oldKeyToIndex.set(key, i);
         }
       }
-      // Remove any remaining old keyed nodes not present in newChildren
-      oldMap.forEach(({ child }) => {
-        if (child.parentNode === parentEl) parentEl.removeChild(child);
-      });
-      // Remove extra trailing nodes if newChildren shorter
+
+      // Build sequence of old indices for new keyed order; -1 for new nodes
+      const newLen = newChildren.length;
+      const seq = new Array(newLen);
+      const keyedPositions = new Array(newLen);
+      for (let i = 0; i < newLen; i++) {
+        const k = this._getKey(newChildren[i]);
+        if (k != null) {
+          const key = String(k);
+          keyedPositions[i] = true;
+          const idx = oldKeyToIndex.has(key) ? oldKeyToIndex.get(key) : -1;
+          seq[i] = idx;
+        } else {
+          keyedPositions[i] = false;
+          seq[i] = -2; // sentinel for unkeyed
+        }
+      }
+
+      // Compute LIS indices for existing keyed nodes (seq >= 0)
+      const lis = (() => {
+        const arr = [];
+        const pos = [];
+        const prev = new Array(newLen).fill(-1);
+        for (let i = 0; i < newLen; i++) {
+          const v = seq[i];
+          if (v < 0) { continue; }
+          let l = 0, r = arr.length;
+          while (l < r) {
+            const m = (l + r) >> 1;
+            if (arr[m] < v) l = m + 1; else r = m;
+          }
+          if (l >= arr.length) arr.push(v); else arr[l] = v;
+          pos[l] = i;
+          if (l > 0) prev[i] = pos[l - 1];
+        }
+        let k = arr.length ? pos[arr.length - 1] : -1;
+        const result = new Set();
+        while (k !== -1) { result.add(k); k = prev[k]; }
+        return result;
+      })();
+
+      // Track which old keys were seen to remove leftovers later
+      const seen = new Set();
+      // Anchor for insertBefore; iterate from end for stable moves
+      let anchor = null;
+      for (let i = newLen - 1; i >= 0; i--) {
+        const newChild = newChildren[i];
+        const k = this._getKey(newChild);
+        if (k != null) {
+          const key = String(k);
+          const existing = oldKeyToNode.get(key);
+          if (existing) {
+            seen.add(key);
+            // Patch content
+            this._patch(parentEl, existing, newChild);
+            // Move only if not part of LIS
+            if (!lis.has(i)) {
+              parentEl.insertBefore(existing, anchor);
+            }
+          } else {
+            // Brand new keyed node: insert actual node from fragment
+            parentEl.insertBefore(newChild, anchor);
+          }
+        } else {
+          // Unkeyed: align by current index i
+          const at = parentEl.childNodes[i] || anchor;
+          // If there's a node at i and it's the same type, patch in place; otherwise insert
+          const currentAtI = parentEl.childNodes[i] || null;
+          if (currentAtI) {
+            this._patch(parentEl, currentAtI, newChild);
+          } else {
+            parentEl.insertBefore(newChild, anchor);
+          }
+        }
+        anchor = parentEl.childNodes[i] ? parentEl.childNodes[i].nextSibling : anchor;
+      }
+
+      // Remove any old keyed nodes not present in newChildren
+      for (const [key, node] of oldKeyToNode.entries()) {
+        if (!seen.has(key) && node.parentNode === parentEl) {
+          parentEl.removeChild(node);
+        }
+      }
+
+      // Trim extra nodes if parent has more than needed
       while (parentEl.childNodes.length > newChildren.length) {
         parentEl.removeChild(parentEl.lastChild);
       }
       return;
     }
-    // Non-keyed: patch by index
+    // Non-keyed: patch by index using existing and new nodes (move instead of clone)
     const minLen = Math.min(oldChildren.length, newChildren.length);
     for (let i = 0; i < minLen; i++) this._patch(parentEl, oldChildren[i], newChildren[i]);
     // Append new
-    for (let i = minLen; i < newChildren.length; i++) parentEl.appendChild(newChildren[i].cloneNode(true));
+    for (let i = minLen; i < newChildren.length; i++) parentEl.appendChild(newChildren[i]);
     // Remove old
     for (let i = minLen; i < oldChildren.length; i++) parentEl.removeChild(oldChildren[i]);
   }
@@ -397,22 +469,34 @@ export class SmoothComponent {
     try {
       this.isRendering = true;
       const html = this.template();
-      // Build a temporary container for the new content
-      const container = document.createElement('div');
+      // Build a DocumentFragment for the new content to avoid clones
+      let frag = document.createDocumentFragment();
       if (html == null) {
-        container.innerHTML = '';
+        // nothing
       } else if (typeof html === 'string') {
-        container.innerHTML = html;
+        try {
+          const range = document.createRange();
+          range.selectNode(this.element);
+          frag = range.createContextualFragment(html);
+        } catch {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = html;
+          while (tmp.firstChild) frag.appendChild(tmp.firstChild);
+        }
       } else if (html instanceof Node) {
-        container.appendChild(html.cloneNode(true));
+        frag.appendChild(html);
       } else {
-        container.textContent = String(html);
+        const tmp = document.createTextNode(String(html));
+        frag.appendChild(tmp);
       }
+      // Capture children arrays once
+      const oldChildren = Array.from(this.element.childNodes);
+      const newChildren = Array.from(frag.childNodes);
       // Patch children of root element to match the new content
       this._patchChildren(
         this.element,
-        Array.from(this.element.childNodes),
-        Array.from(container.childNodes)
+        oldChildren,
+        newChildren
       );
       this.bindEvents();
       // Process any pending portals after main patch
