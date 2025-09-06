@@ -1,4 +1,3 @@
-// Velvet Design System for SmoothJS
 export { Velvet, initVelvet, toggleDarkMode } from './velvet.js';
 export { VelvetComponent } from './VelvetComponent.js';
 export { VelvetUI } from './components.js';

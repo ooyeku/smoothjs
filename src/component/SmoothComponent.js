@@ -1,4 +1,23 @@
+/**
+ * A private WeakMap to serve as a registry for associating context-specific data with objects.
+ * The `_contextRegistry` is used internally to maintain a mapping between objects and their corresponding
+ * data in a memory-efficient way. The use of `WeakMap` ensures that the keys (objects) do not prevent garbage
+ * collection, aiding in memory management.
+ *
+ * This variable should not be accessed directly and is intended for internal use only.
+ *
+ * Key: An object for which context-specific data needs to be tracked.
+ * Value: The context-specific data associated with the key object.
+ */
 const _contextRegistry = new WeakMap(); // WeakMap<Element, Map<symbol, any>> for context values
+/**
+ * Determines whether error logging should be enabled based on the current environment.
+ *
+ * The method checks specific environment variables and global properties to decide if
+ * error logging is appropriate. Logging is disabled in testing environments.
+ *
+ * @return {boolean} Returns true if errors should be logged, false otherwise.
+ */
 function _shouldLogErrors() {
   try {
     const env = (typeof process !== 'undefined' && process && process.env) ? process.env : {};
@@ -11,6 +30,11 @@ function _shouldLogErrors() {
   return true;
 }
 
+/**
+ * SmoothComponent represents a base class designed for managing state, properties,
+ * rendering, and lifecycle events of a component in a smooth and efficient manner.
+ * It leverages batching, context handling, and portals to manage complex rendering scenarios.
+ */
 export class SmoothComponent {
   static _dirty = new Set();
   static _scheduled = false;

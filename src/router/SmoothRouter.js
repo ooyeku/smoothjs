@@ -1,3 +1,8 @@
+/**
+ * SmoothRouter is a lightweight client-side router for managing routes
+ * in single-page applications. It supports history and hash-based routing,
+ * nested routes, route guards, and dynamic route components.
+ */
 export class SmoothRouter {
   constructor(options = {}) {
     this._routeTree = []; // array of top-level route nodes

@@ -1,3 +1,19 @@
+/**
+ * A utility function to create a predictable and lightweight state management store.
+ *
+ * This store allows you to manage state through a public API, enabling state updates,
+ * state replacement, resetting to the initial state, subscribing to state changes,
+ * and selecting specific state slices with custom equality checks.
+ *
+ * @param {Object} [initialState={}] - An optional object representing the initial state of the store.
+ * @returns {Object} An API object with the following methods:
+ * - `getState`: Returns the current state as an object copy.
+ * - `setState`: Updates the state with a partial object or a function that returns a partial state.
+ * - `replaceState`: Completely replaces the state with a new object.
+ * - `reset`: Resets the state to the initial state.
+ * - `subscribe`: Registers a listener function that will be invoked on state changes. Returns an unsubscribe function.
+ * - `select`: Subscribes to a selected part of the state with an optional custom equality function and change callback.
+ */
 export const createStore = (initialState = {}) => {
   let state = { ...initialState };
   const listeners = new Set();
@@ -82,6 +98,19 @@ export const createStore = (initialState = {}) => {
   return api;
 };
 
+/**
+ * Creates a memoized selector function that computes a derived state.
+ * The output of the selector function is cached, and the cache is utilized
+ * when the input-derived state has not changed, improving performance.
+ *
+ * @param {...Function} funcs - A list of functions where all except the last one
+ *                              are input-selectors, and the last one is a result function.
+ *                              Each input-selector extracts a portion of the state.
+ *                              The result function computes the derived state from
+ *                              the combined results of the input-selectors.
+ * @returns {Function} A memoized selector function that takes the state and optional
+ *                     additional arguments and computes or retrieves the derived state.
+ */
 export const createSelector = (...funcs) => {
   const resultFunc = funcs.pop();
   const inputSelectors = funcs;

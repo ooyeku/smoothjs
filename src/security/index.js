@@ -1,8 +1,19 @@
-// Security utilities: simple, pluggable HTML sanitizer
-// Default strategy removes script/style tags, event handler attributes, and javascript: URLs.
 
+/**
+ * A variable intended to hold a custom sanitizer function.
+ * The value should be a function that processes and returns a sanitized version of its input,
+ * or null if no custom sanitization is to be applied.
+ *
+ * @type {Function|null}
+ */
 let customSanitizer = null;
 
+/**
+ * Removes potentially dangerous attributes from a given DOM element to prevent security vulnerabilities such as XSS.
+ *
+ * @param {Element} el - The DOM element from which dangerous attributes will be removed. If the element is null or does not have attributes, the function does nothing.
+ * @return {void} This function does not return a value.
+ */
 function removeDangerousAttrs(el) {
   if (!el || !el.attributes) return;
   // Copy list because we'll mutate
@@ -34,6 +45,16 @@ function removeDangerousAttrs(el) {
   }
 }
 
+/**
+ * Cleans the DOM tree rooted at the given element by removing or sanitizing unwanted nodes
+ * and attributes based on the provided options.
+ *
+ * @param {Node} root - The root node of the tree to be cleaned.
+ * @param {Object} [options] - Configuration options for cleaning the tree.
+ * @param {string[]} [options.allowTags=null] - An optional array of tag names to allow. Tags not in this list are either removed or unwrapped, depending on the configuration.
+ * @param {Object} [options.allowAttrs=null] - An optional object specifying which attributes are allowed for specific tags. Keys are tag names (or '*' for all tags), and values are arrays of allowed attribute names.
+ * @return {void} This function does not return a value. The tree is modified in-place.
+ */
 function cleanTree(root, { allowTags = null, allowAttrs = null } = {}) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, null);
   const toRemove = [];
@@ -70,6 +91,13 @@ function cleanTree(root, { allowTags = null, allowAttrs = null } = {}) {
   }
 }
 
+/**
+ * Sanitizes the provided HTML string by removing or modifying potentially unsafe elements and attributes.
+ *
+ * @param {string} html - The HTML string to be sanitized.
+ * @param {Object} [options={}] - Optional configuration for the sanitization process.
+ * @return {string} - The sanitized HTML string.
+ */
 export function sanitize(html, options = {}) {
   if (typeof document === 'undefined') return String(html == null ? '' : html);
   if (customSanitizer) return customSanitizer(html, options);
@@ -79,6 +107,12 @@ export function sanitize(html, options = {}) {
   return tmp.innerHTML;
 }
 
+/**
+ * Configures a custom sanitizer function to be used for sanitizing inputs.
+ *
+ * @param {Function|null} fn - A function to be used as the sanitizer. If the provided parameter is not a function, the sanitizer will be set to null.
+ * @return {void} This function does not return a value.
+ */
 export function configureSanitizer(fn) {
   customSanitizer = (typeof fn === 'function') ? fn : null;
 }

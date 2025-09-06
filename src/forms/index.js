@@ -1,6 +1,14 @@
-// Simple form helpers for SmoothJS
-// createForm: manages values, errors, touched, dirty; returns handlers for change/blur/submit
 
+
+/**
+ * Executes a set of validators against specified values and returns an object containing validation errors.
+ *
+ * @param {Object} values - An object containing key-value pairs to validate.
+ * @param {Object} [validators={}] - An object where keys correspond to fields in `values` and values are validator functions.
+ *                                    Each validator function is called with the field value as the first argument and the entire
+ *                                    `values` object as the second argument.
+ * @return {Object} An object mapping field names to their validation error messages. If no errors are found, the object is empty.
+ */
 function runValidators(values, validators = {}) {
   const errors = {};
   for (const [field, validator] of Object.entries(validators || {})) {
@@ -14,6 +22,25 @@ function runValidators(values, validators = {}) {
   return errors;
 }
 
+/**
+ * Creates a form management object with associated state and handlers for form values, errors, and submission.
+ *
+ * @param {Object} initialValues - An object representing the initial values of the form fields. Defaults to an empty object.
+ * @param {Object} validators - An object containing field-specific validation functions. Each key should match a field name and the value should be a validation function.
+ * @return {Object} An object containing the form state and methods to manage the form:
+ * - `values`: The current values of the form fields.
+ * - `errors`: The current validation errors for the form fields.
+ * - `touched`: An object indicating which fields have been interacted with.
+ * - `dirty`: A boolean indicating whether any field values differ from their initial values.
+ * - `submitted`: A boolean indicating whether the form has been submitted.
+ * - `setField`: A function to update a single field's value.
+ * - `setValues`: A function to update multiple field values.
+ * - `validate`: A function to validate the current form values.
+ * - `reset`: A function to reset the form to its initial state or new initial values.
+ * - `handleChange`: A handler function to manage field value changes, typically bound to input events.
+ * - `handleBlur`: A handler function to track field focus loss, typically bound to input blur events.
+ * - `handleSubmit`: A function to handle form submission, with custom callbacks for valid and invalid states.
+ */
 export function createForm(initialValues = {}, validators = {}) {
   const state = {
     initial: { ...(initialValues || {}) },

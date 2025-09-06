@@ -1,3 +1,7 @@
+/**
+ * Utility functions for common operations including environment detection, DOM readiness,
+ * function control (debounce/throttle), string escaping, and value formatting.
+ */
 export const utils = {
   isBrowser: (typeof window !== 'undefined') && (typeof document !== 'undefined'),
 

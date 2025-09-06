@@ -2,6 +2,13 @@ import { SmoothComponent } from '../component/SmoothComponent.js';
 import { Query } from '../data/query.js';
 
 // Shallow compare dependency arrays with fast paths
+/**
+ * Compares two dependency arrays and determines if their contents have changed.
+ *
+ * @param {any[]|null} a - The first dependency array to compare. Can be null.
+ * @param {any[]|null} b - The second dependency array to compare. Can be null.
+ * @return {boolean} Returns true if the dependency arrays are different, otherwise false.
+ */
 function depsChanged(a, b) {
   if (a === b) return false;
   if (!a && !b) return false;
@@ -21,6 +28,13 @@ function depsChanged(a, b) {
   }
 }
 
+/**
+ * Defines a functional component as an adapter for `SmoothComponent`.
+ * The method accepts a setup function, which defines the component's behavior using hooks and a provided context.
+ *
+ * @param {Function} setup - A function that sets up the component behavior. It is called with a context object containing utility functions and properties for managing the component state, effects, and DOM interactions.
+ * @return {SmoothComponent} A new class extending `SmoothComponent` with the provided setup logic and lifecycle methods.
+ */
 export function defineComponent(setup) {
   if (typeof setup !== 'function') throw new Error('defineComponent expects a function');
 
@@ -38,6 +52,13 @@ export function defineComponent(setup) {
       this._ctx = null; // stable setup ctx
     }
 
+    /**
+     * Initializes internal hook and effect storage for managing component lifecycle methods.
+     * Prepares the necessary structures to support hooks and effects without directly invoking setup processes.
+     * This method ensures that the component's hooks and effects are in a valid, initialized state before rendering.
+     *
+     * @return {void} This method does not return a value.
+     */
     onCreate() {
       // Ensure hook/effect storage is initialized before any setup/render runs
       if (!this._hooks) this._hooks = new Array(32);
@@ -169,6 +190,14 @@ export function defineComponent(setup) {
       // Return noop; not used directly by callers in this design
     }
 
+    /**
+     * Internal method that initializes or updates a query hook for managing data subscriptions and fetching.
+     *
+     * @param {string} key - The unique key identifying the query to be used.
+     * @param {Function} [fetcher] - An optional function that defines how to fetch the data if not already available.
+     * @param {Object} [options={}] - Optional configuration object for the query fetch process.
+     * @return {Array} - Returns an array where the first position is a proxy to the query data, and the second position contains helper functions like `refetch`, `invalidate`, etc. to manage the query.
+     */
     _useQuery(key, fetcher, options = {}) {
       const i = this._hookIndex++;
       this._ensureHookCapacity(i);
@@ -205,6 +234,15 @@ export function defineComponent(setup) {
       }
       const getData = () => (entry && entry.snapshot ? entry.snapshot.data : Query.getData(k));
       const proxy = new Proxy({}, {
+        /**
+         * Retrieves a property from an object or executes specific tasks based on the property name.
+         *
+         * @param {object} _t - A placeholder parameter not used in the function logic.
+         * @param {string} prop - The property name to retrieve or the action to execute.
+         * @return {*} Returns the value associated with the specified property if it exists and is an object,
+         *             or executes special cases ('__raw__' or 'toJSON') depending on the property name.
+         *             Returns undefined if the property does not exist or is not applicable.
+         */
         get(_t, prop) {
           if (prop === '__raw__') return getData();
           if (prop === 'toJSON') return () => getData() ?? null;
@@ -212,16 +250,36 @@ export function defineComponent(setup) {
           if (d && typeof d === 'object') return d[prop];
           return undefined;
         },
+        /**
+         * Checks if a given property exists within a data object.
+         *
+         * @param {any} _t - An unused parameter in the current context.
+         * @param {string} prop - The property name to check within the data object.
+         * @return {boolean} Returns true if the property exists in the data object and the object is valid; otherwise, false.
+         */
         has(_t, prop) {
           const d = getData();
           if (d && typeof d === 'object') return prop in d;
           return false;
         },
+        /**
+         * Retrieves the own property keys of an object if the data is valid and of type 'object'.
+         * If the data is not valid or not an object, it returns an empty array.
+         *
+         * @return {Array} An array of the own property keys if the data is a valid object; otherwise, an empty array.
+         */
         ownKeys() {
           const d = getData();
           if (d && typeof d === 'object') return Reflect.ownKeys(d);
           return [];
         },
+        /**
+         * Retrieves the property descriptor for a given property name from an internal object, if available.
+         *
+         * @param {Object} _t - Ignored parameter, the context or receiver of the call.
+         * @param {string} prop - The name of the property for which the descriptor is to be retrieved.
+         * @return {Object|undefined} The property descriptor object for the specified property if it exists; otherwise, undefined.
+         */
         getOwnPropertyDescriptor(_t, prop) {
           const d = getData();
           if (d && typeof d === 'object') return Object.getOwnPropertyDescriptor(d, prop);
@@ -278,7 +336,14 @@ export function defineComponent(setup) {
       this._effects = next;
     }
 
-    // Lifecycle bridging
+
+    /**
+     * Executes the `onMount` lifecycle method if defined and performs related setup operations.
+     * It invokes the `onMount` function provided in the `_setupResult`, binds any registered events,
+     * and schedules the execution of effects for the initial render.
+     *
+     * @return {void} Does not return a value.
+     */
     onMount() {
       if (this._setupResult && typeof this._setupResult.onMount === 'function') {
         try { this._setupResult.onMount.call(this, this._buildCtx()); } catch {}
@@ -292,6 +357,15 @@ export function defineComponent(setup) {
       }
     }
 
+    /**
+     * Cleans up resources and subscriptions when the component or instance is unmounted.
+     * This method performs the following tasks:
+     * 1. Executes the cleanup functions of all registered effects and clears the effects list.
+     * 2. Unsubscribes from all query subscriptions and clears their `unsub` references.
+     * 3. Invokes the `onUnmount` method of the setup result, if defined.
+     *
+     * @return {void} This method does not return a value.
+     */
     onUnmount() {
       // Cleanup effects
       if (this._effects && this._effects.length) {
@@ -316,18 +390,38 @@ export function defineComponent(setup) {
       }
     }
 
+    /**
+     * Handles changes in the component's properties. Invokes the `onPropsChange` method from `_setupResult` if available.
+     *
+     * @param {Object} prev - The previous properties of the component.
+     * @param {Object} next - The updated properties of the component.
+     * @return {void}
+     */
     onPropsChange(prev, next) {
       if (this._setupResult && typeof this._setupResult.onPropsChange === 'function') {
         try { this._setupResult.onPropsChange.call(this, prev, next); } catch {}
       }
     }
 
+    /**
+     * Handles error events by delegating the error to an external callback defined in the setup result, if available.
+     *
+     * @param {Error} err The error object that occurred.
+     * @return {void}
+     */
     onError(err) {
       if (this._setupResult && typeof this._setupResult.onError === 'function') {
         try { this._setupResult.onError.call(this, err); } catch {}
       }
     }
 
+    /**
+     * Executes the template logic, including the setup process, rendering,
+     * lifecycle callbacks, and effect scheduling.
+     *
+     * @return {string} The rendered output, computed by the template's render function,
+     *                  or an empty string if no valid render function is found.
+     */
     template() {
       this._hookIndex = 0;
       // Build a stable ctx (created lazily once)

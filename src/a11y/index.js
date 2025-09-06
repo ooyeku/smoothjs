@@ -1,9 +1,11 @@
-// Accessibility utilities for SmoothJS
-// - focusTrap(container): traps focus within container; returns cleanup function
-// - announce(message, { politeness, timeout }): announces a message via aria-live region
-// - createSkipLink(target): inserts a skip link to target at top of document
-// - aria(el, attrs): sets ARIA attributes conveniently
 
+
+/**
+ * Retrieves all focusable elements within a specified container.
+ *
+ * @param {HTMLElement} container - The container element in which to find focusable elements. Must support `querySelectorAll`.
+ * @return {HTMLElement[]} An array of focusable elements within the specified container. Returns an empty array if the container is invalid or no focusable elements are found.
+ */
 function getFocusable(container) {
   if (!container || typeof container.querySelectorAll !== 'function') return [];
   const selectors = [
@@ -14,6 +16,16 @@ function getFocusable(container) {
   return Array.from(container.querySelectorAll(selectors.join(',')));
 }
 
+/**
+ * Creates a focus trap within a given container, ensuring that focus remains
+ * within the specified element while allowing navigation via the Tab key.
+ *
+ * @param {HTMLElement|string} container - The target container element or a CSS selector string.
+ * If a string is provided, the method queries the DOM to find the element. If no element is found, the method no-ops.
+ *
+ * @return {Function} A cleanup function to remove the focus trap. This function restores the original
+ * focus, removes event listeners, and resets any temporary focus-related attributes added during setup.
+ */
 export function focusTrap(container) {
   if (typeof document === 'undefined') return () => {};
   const el = typeof container === 'string' ? document.querySelector(container) : container;
@@ -73,7 +85,27 @@ export function focusTrap(container) {
   };
 }
 
+/**
+ * Represents a live region within the application, used for ARIA live region
+ * functionality to announce dynamic content changes to assistive technologies.
+ *
+ * This variable is typically assigned an appropriate DOM element or remains
+ * null if no live region is set. It is utilized to enhance accessibility by
+ * enabling screen readers to monitor and announce updates in response to
+ * application interactions.
+ *
+ * @type {?HTMLElement}
+ */
 let liveRegion = null;
+/**
+ * Ensures the presence of a live region in the DOM for assistive technologies.
+ * If a live region already exists, it returns the existing live region element.
+ * Otherwise, it creates a new live region element, appends it to the document body,
+ * and returns the newly created live region element.
+ *
+ * @return {HTMLDivElement|null} The live region element if executed in a browser environment,
+ * or null if executed in a non-browser environment (e.g., server-side rendering).
+ */
 function ensureLiveRegion() {
   if (typeof document === 'undefined') return null;
   if (liveRegion && liveRegion.parentNode) return liveRegion;
@@ -89,6 +121,15 @@ function ensureLiveRegion() {
   return div;
 }
 
+/**
+ * Announces a message using an ARIA live region for screen readers.
+ *
+ * @param {string} message - The message to be announced.
+ * @param {Object} [options] - Configuration options for the announcement.
+ * @param {string} [options.politeness='polite'] - The politeness level for the announcement. Can be 'polite' or 'assertive'.
+ * @param {number} [options.timeout=3000] - The duration in milliseconds before clearing the message. Set to 0 to disable clearing the message.
+ * @return {void} This function does not return a value.
+ */
 export function announce(message, { politeness = 'polite', timeout = 3000 } = {}) {
   const region = ensureLiveRegion();
   if (!region) return;
@@ -99,6 +140,15 @@ export function announce(message, { politeness = 'polite', timeout = 3000 } = {}
   }
 }
 
+/**
+ * Creates and appends a skip link to the document for accessibility purposes.
+ * The skip link allows users to bypass navigation and skip directly to the main content.
+ *
+ * @param {string} [target='#app'] - The ID or selector of the target element to which the skip link will navigate.
+ * @param {Object} [options={}] - Additional options.
+ * @param {string} [options.text='Skip to main content'] - The text to display in the skip link.
+ * @return {HTMLAnchorElement|null} The created skip link element, or null if the operation fails or if the document object is not available.
+ */
 export function createSkipLink(target = '#app', { text = 'Skip to main content' } = {}) {
   if (typeof document === 'undefined') return null;
   try {
@@ -120,6 +170,13 @@ export function createSkipLink(target = '#app', { text = 'Skip to main content' 
   } catch { return null; }
 }
 
+/**
+ * Updates the given element with ARIA attributes and roles.
+ *
+ * @param {HTMLElement} el - The HTML element to which ARIA attributes will be applied.
+ * @param {Object} [attrs={}] - A key-value pair object where the key is the ARIA attribute name (without the 'aria-' prefix) or 'role', and the value is the attribute value.
+ * @return {void} This function does not return a value.
+ */
 export function aria(el, attrs = {}) {
   if (!el) return;
   Object.entries(attrs).forEach(([k, v]) => {
