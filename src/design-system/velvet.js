@@ -7,30 +7,79 @@ const V_GLOBAL = (() => {
   const g = (typeof window !== 'undefined' ? window : globalThis);
   g.__SMOOTH_VELVET__ = g.__SMOOTH_VELVET__ || {
     cache: new Map(), // className -> css
-    buf: [],
+    lruKeys: [], // insertion order of classNames for simple LRU
+    MAX_CACHE: 10000,
+    buf: [], // raw css chunks (fallback)
+    rules: [], // individual minified rules for CSSOM insert
+    ruleSet: new Set(), // dedupe of rule strings
     scheduled: false,
     styleEl: null,
     sheet: null,
+    objToClass: new WeakMap(), // styleObj -> className
+    propMemo: new Map(), // camelCase -> kebab-case memo
+    nonce: null,
   };
   return g.__SMOOTH_VELVET__;
 })();
 
+function _minify(css) {
+  if (!css) return '';
+  // remove comments
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // collapse whitespace
+  css = css.replace(/\s+/g, ' ');
+  // remove spaces around symbols
+  css = css.replace(/\s*([{}:;,>])\s*/g, '$1');
+  // trailing semicolons
+  css = css.replace(/;}/g, '}');
+  // zero units
+  css = css.replace(/(:|\s)0(px|rem|em|vh|vw|%)\b/g, '$10');
+  // shorten hex colors #aabbcc -> #abc
+  css = css.replace(/#([0-9a-fA-F])\1([0-9a-fA-F])\2([0-9a-fA-F])\3\b/g, '#$1$2$3');
+  return css.trim();
+}
+
 function _flushCSS() {
-  if (!V_GLOBAL.buf.length) return;
   try {
-    const style = V_GLOBAL.styleEl || document.getElementById('velvet-styles');
-    if (style) {
-      // Append as one chunk to minimize operations
-      style.textContent += V_GLOBAL.buf.join('');
+    const style = V_GLOBAL.styleEl || (typeof document !== 'undefined' ? document.getElementById('velvet-styles') : null);
+    const sheet = V_GLOBAL.sheet || (style ? style.sheet : null);
+    if (sheet && V_GLOBAL.rules.length) {
+      for (const rule of V_GLOBAL.rules) {
+        if (!V_GLOBAL.ruleSet.has(rule)) {
+          try { sheet.insertRule(rule, sheet.cssRules.length); V_GLOBAL.ruleSet.add(rule); }
+          catch { V_GLOBAL.buf.push(rule); }
+        }
+      }
+      V_GLOBAL.rules.length = 0;
+    } else if (!sheet && style && V_GLOBAL.rules.length) {
+      // Fallback: append rules as text and mark as seen
+      style.textContent += V_GLOBAL.rules.join('');
+      for (const rule of V_GLOBAL.rules) { V_GLOBAL.ruleSet.add(rule); }
+      V_GLOBAL.rules.length = 0;
     }
-  } catch {}
-  V_GLOBAL.buf.length = 0;
+    if (style && V_GLOBAL.buf.length) {
+      style.textContent += V_GLOBAL.buf.join('');
+      V_GLOBAL.buf.length = 0;
+    }
+  } catch {
+    // best-effort fallback: ignore
+  }
   V_GLOBAL.scheduled = false;
 }
 
 function _enqueueCSS(css) {
   if (!css) return;
-  V_GLOBAL.buf.push(css);
+  const min = _minify(css);
+  // Split into individual rules to dedupe/insert via CSSOM
+  const parts = min.split('}');
+  for (let p of parts) {
+    p = p.trim();
+    if (!p) continue;
+    const rule = p.endsWith('}') ? p : p + '}';
+    if (!V_GLOBAL.ruleSet.has(rule)) {
+      V_GLOBAL.rules.push(rule);
+    }
+  }
   if (!V_GLOBAL.scheduled) {
     V_GLOBAL.scheduled = true;
     Promise.resolve().then(_flushCSS);
@@ -44,14 +93,13 @@ export class Velvet {
     this.utilities = new VelvetUtilities(defaultTheme).utilities;
     // Ensure a single global style element exists and is cached
     if (typeof document !== 'undefined') {
-      if (!V_GLOBAL.styleEl) {
-        const existing = document.getElementById('velvet-styles');
-        if (existing) {
-          V_GLOBAL.styleEl = existing;
-          V_GLOBAL.sheet = existing.sheet || null;
-        } else {
-          this.initStyleSheet();
-        }
+      const existing = V_GLOBAL.styleEl || document.getElementById('velvet-styles');
+      if (existing) {
+        V_GLOBAL.styleEl = existing;
+        V_GLOBAL.sheet = existing.sheet || null;
+        try { Velvet.hydrate(existing); } catch {}
+      } else {
+        this.initStyleSheet();
       }
     }
   }
@@ -61,6 +109,9 @@ export class Velvet {
     if (V_GLOBAL.styleEl) return;
     const style = document.createElement('style');
     style.id = 'velvet-styles';
+    try { style.setAttribute('data-velvet', '1'); } catch {}
+    const nonce = V_GLOBAL.nonce || (typeof window !== 'undefined' ? (window.__VELVET_NONCE__ || null) : null);
+    if (nonce) { try { style.setAttribute('nonce', String(nonce)); } catch {} }
     style.textContent = this.getBaseStyles();
     document.head.appendChild(style);
     V_GLOBAL.styleEl = style;
@@ -153,10 +204,15 @@ export class Velvet {
     if (typeof styleDefinition === 'string') {
       return styleDefinition;
     }
-    const className = this.generateClassName(styleDefinition);
+    // Use WeakMap for referentially stable objects
+    let className = V_GLOBAL.objToClass.get(styleDefinition);
+    if (!className) {
+      className = this.generateClassName(styleDefinition);
+      try { V_GLOBAL.objToClass.set(styleDefinition, className); } catch {}
+    }
     if (!V_GLOBAL.cache.has(className)) {
       const css = this.processStyles(className, styleDefinition);
-      V_GLOBAL.cache.set(className, css);
+      this._cachePut(className, css);
       this.injectStyles(css);
     }
     return className;
@@ -187,15 +243,13 @@ export class Velvet {
       css += `.${className}:active { ${this.objectToCSS(active)} }\n`;
     }
     
-    // Dark mode styles
+    // Dark mode styles (keep specificity low via :where)
     if (Object.keys(dark).length > 0) {
-      css += `[data-theme="dark"] .${className} { ${this.objectToCSS(dark)} }\n`;
-      css += `@media (prefers-color-scheme: dark) { 
-        :root:not([data-theme="light"]) .${className} { ${this.objectToCSS(dark)} }
-      }\n`;
+      css += `[data-theme="dark"] :where(.${className}) { ${this.objectToCSS(dark)} }\n`;
+      css += `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :where(.${className}) { ${this.objectToCSS(dark)} } }\n`;
     }
     
-    // Responsive styles
+    // Responsive styles in deterministic order
     const breakpoints = {
       sm: '640px',
       md: '768px',
@@ -203,25 +257,47 @@ export class Velvet {
       xl: '1280px',
       '2xl': '1536px'
     };
-    
-    Object.entries(responsive).forEach(([breakpoint, styles]) => {
-      if (breakpoints[breakpoint] && Object.keys(styles).length > 0) {
-        css += `@media (min-width: ${breakpoints[breakpoint]}) {
-          .${className} { ${this.objectToCSS(styles)} }
-        }\n`;
+    const order = ['sm','md','lg','xl','2xl'];
+    for (const bp of order) {
+      const styles = responsive[bp];
+      if (styles && Object.keys(styles).length > 0 && breakpoints[bp]) {
+        css += `@media (min-width: ${breakpoints[bp]}) { .${className} { ${this.objectToCSS(styles)} } }\n`;
       }
-    });
+    }
     
     return css;
   }
   
   objectToCSS(obj) {
-    return Object.entries(obj)
-      .map(([key, value]) => {
-        const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-        return `${cssKey}: ${value}`;
-      })
-      .join('; ');
+    if (!obj || typeof obj !== 'object') return '';
+    const keys = Object.keys(obj).sort();
+    const toKebab = (key) => {
+      const m = V_GLOBAL.propMemo;
+      if (m.has(key)) return m.get(key);
+      const v = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+      m.set(key, v);
+      return v;
+    };
+    const parts = [];
+    for (const key of keys) {
+      const value = obj[key];
+      if (value === undefined) continue;
+      const cssKey = toKebab(key);
+      parts.push(`${cssKey}: ${value}`);
+    }
+    return parts.join('; ');
+  }
+  
+  _cachePut(className, css) {
+    V_GLOBAL.cache.set(className, css);
+    V_GLOBAL.lruKeys.push(className);
+    const max = V_GLOBAL.MAX_CACHE || 10000;
+    if (V_GLOBAL.lruKeys.length > max) {
+      const evict = V_GLOBAL.lruKeys.shift();
+      if (evict && evict !== className) {
+        try { V_GLOBAL.cache.delete(evict); } catch {}
+      }
+    }
   }
   
   injectStyles(css) {
@@ -400,6 +476,57 @@ export class Velvet {
         lg: { padding: '0 2rem' }
       }
     });
+  }
+
+  // SSR/CSP helpers
+  static setNonce(nonce) {
+    V_GLOBAL.nonce = nonce != null ? String(nonce) : null;
+    try { if (V_GLOBAL.styleEl && V_GLOBAL.nonce) V_GLOBAL.styleEl.setAttribute('nonce', V_GLOBAL.nonce); } catch {}
+  }
+
+  static extractCSS() {
+    if (typeof document === 'undefined') return '';
+    const style = V_GLOBAL.styleEl || document.getElementById('velvet-styles') || document.querySelector('style[data-velvet]');
+    if (!style) return '';
+    try {
+      const sheet = style.sheet;
+      if (sheet && sheet.cssRules) {
+        let out = '';
+        for (let i = 0; i < sheet.cssRules.length; i++) {
+          const r = sheet.cssRules[i];
+          if (r && r.cssText) out += r.cssText;
+        }
+        return out;
+      }
+    } catch {}
+    return style.textContent || '';
+  }
+
+  static hydrate(styleEl = null) {
+    if (typeof document === 'undefined') return;
+    const style = styleEl || document.getElementById('velvet-styles') || document.querySelector('style[data-velvet]');
+    if (!style) return;
+    V_GLOBAL.styleEl = style;
+    V_GLOBAL.sheet = style.sheet || null;
+    // Seed ruleSet from existing CSS so we don't re-insert duplicates
+    try {
+      const sheet = V_GLOBAL.sheet;
+      if (sheet && sheet.cssRules) {
+        for (let i = 0; i < sheet.cssRules.length; i++) {
+          const css = sheet.cssRules[i].cssText;
+          if (css) V_GLOBAL.ruleSet.add(_minify(css));
+        }
+      } else {
+        const txt = style.textContent || '';
+        const parts = _minify(txt).split('}');
+        for (let p of parts) {
+          p = p.trim();
+          if (!p) continue;
+          const rule = p.endsWith('}') ? p : p + '}';
+          V_GLOBAL.ruleSet.add(rule);
+        }
+      }
+    } catch {}
   }
 }
 
