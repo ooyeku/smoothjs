@@ -29,6 +29,10 @@ import * as Testing from './src/testing/index.js';
 // Security and Forms
 import * as Security from './src/security/index.js';
 import * as Forms from './src/forms/index.js';
+// UI components (built-ins)
+import { Button } from './src/component/ui/index.js';
+import { TextField } from './src/component/ui/index.js';
+import { Modal } from './src/component/ui/index.js';
 
 const version = '1.0.0';
 
@@ -53,6 +57,9 @@ const SmoothJS = {
   Testing,
   Security,
   Forms,
+  Button,
+  TextField,
+  Modal,
   Component
 };
 
@@ -61,5 +68,5 @@ if (typeof window !== 'undefined') {
   window.SmoothJS = SmoothJS;
 }
 
-export { createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, defineComponent, SSR, Query, DevTools, A11y, Velvet, Testing, Security, Forms, Component };
+export { createContext, Router, createStore, createSelector, createElement, http, HTTPError, utils, $, $$, version, defineComponent, SSR, Query, DevTools, A11y, Velvet, Testing, Security, Forms, Button, TextField, Modal, Component };
 export default SmoothJS;

@@ -1,4 +1,4 @@
-import { defineComponent, utils, Velvet } from '../../index.js';
+import { defineComponent, utils, Velvet, Button } from '../../index.js';
 import { 
   counterStore, 
   preferencesStore, 
@@ -11,7 +11,7 @@ import {
 
 // Counter Page (Advanced Global Store) — functional
 export const CounterPage = defineComponent((ctx) => {
-  const { html, on, useState } = ctx;
+  const { html, on, useState, useEffect, find } = ctx;
   const { vs } = Velvet.useVelvet(ctx);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [animationDuration, setAnimationDuration] = useState(300);
@@ -99,18 +99,16 @@ export const CounterPage = defineComponent((ctx) => {
           </div>
           
           <div class="${row}">
-            <button id="dec" class="${btn}">-</button>
+            <span id="btn-dec"></span>
             <div class="${counterBox}">${count}</div>
-            <button id="inc" class="${btnPrimary}">+</button>
+            <span id="btn-inc"></span>
           </div>
           
           <div class="${grid2}">
-            <button id="inc2" class="${btnPrimary}" style="font-size: 0.875rem;">++ twice</button>
-            <button id="reset" class="${btn}" style="font-size: 0.875rem;">Reset</button>
-            <button id="replace10" class="${btn}" style="font-size: 0.875rem;">Set to 10</button>
-            <button id="toggle-advanced" class="${btn}" style="font-size: 0.875rem;">
-              ${showAdvanced ? 'Hide' : 'Show'} Advanced
-            </button>
+            <span id="btn-inc2"></span>
+            <span id="btn-reset"></span>
+            <span id="btn-set10"></span>
+            <span id="btn-toggle-adv"></span>
           </div>
           
           ${showAdvanced ? html`

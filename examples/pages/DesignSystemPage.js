@@ -1,32 +1,30 @@
-import { defineComponent, Velvet } from '../../index.js';
+import { defineComponent, Velvet, Button, TextField, Modal } from '../../index.js';
 
-export const DesignSystemPage = defineComponent(({ html, on, useState, useEffect, find }) => {
+export const DesignSystemPage = defineComponent(({ html, useState, useEffect, find }) => {
   const { VelvetUI } = Velvet;
   const [modalOpen, setModalOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  let btn1 = null, btn2 = null, btn3 = null, input = null, tabs = null, modal = null;
-
-  on('click', '#open-modal', () => setModalOpen(true));
+  let btn1 = null, btn2 = null, btn3 = null, input = null, tabs = null, modal = null, openBtn = null;
 
   const onMount = () => {
     // Buttons
     const b1Host = find('#btn1');
     const b2Host = find('#btn2');
     const b3Host = find('#btn3');
-    btn1 = new VelvetUI.Button(null, {}, { variant: 'primary', children: 'Primary', onClick: () => console.log('Primary clicked') });
-    btn2 = new VelvetUI.Button(null, {}, { variant: 'secondary', children: 'Secondary' });
-    btn3 = new VelvetUI.Button(null, {}, { variant: 'ghost', children: 'Ghost' });
+    btn1 = new Button(null, {}, { variant: 'primary', children: 'Primary', onClick: () => console.log('Primary clicked') });
+    btn2 = new Button(null, {}, { variant: 'secondary', children: 'Secondary' });
+    btn3 = new Button(null, {}, { variant: 'ghost', children: 'Ghost' });
     if (b1Host) btn1.mount(b1Host);
     if (b2Host) btn2.mount(b2Host);
     if (b3Host) btn3.mount(b3Host);
 
     // Input
     const inputHost = find('#input1');
-    input = new VelvetUI.Input(null, {}, {
+    input = new TextField(null, {}, {
       placeholder: 'Type to update state...',
       value: inputValue,
-      onInput: (e) => setInputValue(e.target.value)
+      onInput: (val) => setInputValue(val)
     });
     if (inputHost) input.mount(inputHost);
 
@@ -44,17 +42,22 @@ export const DesignSystemPage = defineComponent(({ html, on, useState, useEffect
 
     // Modal
     const modalHost = find('#modal');
-    modal = new VelvetUI.Modal(null, {}, {
+    modal = new Modal(null, {}, {
       open: modalOpen,
       title: 'Design System Modal',
       onClose: () => setModalOpen(false)
     });
     if (modalHost) modal.mount(modalHost);
+
+    // Open Modal Button
+    const openHost = find('#openModalBtn');
+    openBtn = new Button(null, {}, { variant: 'primary', children: 'Open Modal', onClick: () => setModalOpen(true) });
+    if (openHost) openBtn.mount(openHost);
   };
 
   const onUnmount = () => {
-    [btn1, btn2, btn3, input, tabs, modal].forEach((c, i) => { try { c && c.unmount(); } catch {} });
-    btn1 = btn2 = btn3 = input = tabs = modal = null;
+    [btn1, btn2, btn3, input, tabs, modal, openBtn].forEach((c) => { try { c && c.unmount(); } catch {} });
+    btn1 = btn2 = btn3 = input = tabs = modal = openBtn = null;
   };
 
   // Sync external components with state when values change
@@ -85,7 +88,7 @@ export const DesignSystemPage = defineComponent(({ html, on, useState, useEffect
 
         <div class="card" style="background: var(--card); border:1px solid var(--border); border-radius:12px; padding:1rem 1.25rem;">
           <h2 style="margin:0 0 .5rem 0;">Modal</h2>
-          <button id="open-modal" class="btn" type="button">Open Modal</button>
+          <span id="openModalBtn"></span>
           <div id="modal"></div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { defineComponent, Forms, Security, Velvet } from '../../index.js';
+import { defineComponent, Forms, Security, Velvet, Button, TextField } from '../../index.js';
 
 export const FormsPage = defineComponent((ctx) => {
   const { html, on, useState } = ctx;

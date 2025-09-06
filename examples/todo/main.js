@@ -1,10 +1,11 @@
-import { defineComponent, Velvet } from '../../index.js';
+import { defineComponent, Velvet, Button, TextField } from '../../index.js';
 
 // A simple Todo App using functional components and SmoothJS hooks
 export const TodoApp = defineComponent((ctx) => {
-  const { html, useState, on, portal } = ctx;
+  const { html, useState, on, portal, useEffect, find } = ctx;
   const { vs } = Velvet.useVelvet(ctx);
   const [text, setText] = useState('');
+  let tfNew = null, btnAdd = null, btnClear = null, btnAll = null, btnActive = null, btnDone = null;
   const [filter, setFilter] = useState('all'); // all | active | done
   const [items, setItems] = useState([
     { id: '1', title: 'Read docs', done: false },
@@ -23,13 +24,9 @@ export const TodoApp = defineComponent((ctx) => {
   const remove = (id) => setItems(list => list.filter(i => i.id !== id));
   const clearDone = () => setItems(list => list.filter(i => !i.done));
 
-  on('click', '#add', add);
+  // Keep list item delegation; top-level controls will use built-in components
   on('click', '.toggle', (e) => toggle(e.currentTarget.getAttribute('data-id')));
   on('click', '.remove', (e) => remove(e.currentTarget.getAttribute('data-id')));
-  on('click', '#clearDone', clearDone);
-  on('click', '.filter', (e) => setFilter(e.currentTarget.getAttribute('data-filter')));
-  on('input', '#new', (e) => setText(e.currentTarget.value));
-  on('keydown', '#new', (e) => { if (e.key === 'Enter') add(); });
 
   const filtered = items.filter(i => filter === 'all' ? true : (filter === 'active' ? !i.done : i.done));
 
@@ -50,8 +47,8 @@ export const TodoApp = defineComponent((ctx) => {
     <div class="${appClass}">
       <h1>Todo</h1>
       <div class="${rowClass}">
-        <input id="new" type="text" class="${inputClass}" placeholder="What needs doing?" value="${text}">
-        <button id="add" class="${btnPrimary}">Add</button>
+        <span id="new-input"></span>
+        <span id="add-btn"></span>
       </div>
 
       <ul class="${listClass}">
@@ -66,16 +63,57 @@ export const TodoApp = defineComponent((ctx) => {
       </ul>
 
       <div class="${filtersClass}">
-        <button class="${filterBtn(filter==='all')}" data-filter="all">All</button>
-        <button class="${filterBtn(filter==='active')}" data-filter="active">Active</button>
-        <button class="${filterBtn(filter==='done')}" data-filter="done">Done</button>
-        <button id="clearDone" class="${btnSecondary}">Clear done</button>
+        <span id="btn-all"></span>
+        <span id="btn-active"></span>
+        <span id="btn-done"></span>
+        <span id="btn-clear"></span>
       </div>
 
       ${portal('#portal-root', `<div class='${badgeClass}'>${items.length} total</div>`, 'stats')}
     </div>
   `;
-  return { render };
+  const onMount = () => {
+    const hostInput = find('#new-input');
+    const hostAdd = find('#add-btn');
+    const hostAll = find('#btn-all');
+    const hostActive = find('#btn-active');
+    const hostDone = find('#btn-done');
+    const hostClear = find('#btn-clear');
+
+    tfNew = new TextField(null, {}, {
+      placeholder: 'What needs doing?',
+      value: text,
+      onInput: (val) => setText(val)
+    });
+    btnAdd = new Button(null, {}, { variant: 'primary', children: 'Add', onClick: add });
+    btnAll = new Button(null, {}, { variant: filter==='all' ? 'primary' : 'secondary', children: 'All', onClick: () => setFilter('all') });
+    btnActive = new Button(null, {}, { variant: filter==='active' ? 'primary' : 'secondary', children: 'Active', onClick: () => setFilter('active') });
+    btnDone = new Button(null, {}, { variant: filter==='done' ? 'primary' : 'secondary', children: 'Done', onClick: () => setFilter('done') });
+    btnClear = new Button(null, {}, { variant: 'ghost', children: 'Clear done', onClick: clearDone });
+
+    if (hostInput) tfNew.mount(hostInput);
+    if (hostAdd) btnAdd.mount(hostAdd);
+    if (hostAll) btnAll.mount(hostAll);
+    if (hostActive) btnActive.mount(hostActive);
+    if (hostDone) btnDone.mount(hostDone);
+    if (hostClear) btnClear.mount(hostClear);
+  };
+
+  const onUnmount = () => {
+    [tfNew, btnAdd, btnAll, btnActive, btnDone, btnClear].forEach(c => { try { c && c.unmount(); } catch {} });
+    tfNew = btnAdd = btnAll = btnActive = btnDone = btnClear = null;
+  };
+
+  // Keep inputs in sync
+  useEffect(() => { if (tfNew) tfNew.setProps({ value: text }); }, [text]);
+  useEffect(() => {
+    if (!btnAll || !btnActive || !btnDone) return;
+    try { btnAll.setProps({ variant: filter==='all' ? 'primary' : 'secondary' }); } catch {}
+    try { btnActive.setProps({ variant: filter==='active' ? 'primary' : 'secondary' }); } catch {}
+    try { btnDone.setProps({ variant: filter==='done' ? 'primary' : 'secondary' }); } catch {}
+  }, [filter]);
+
+  return { render, onMount, onUnmount };
 });
 
 // Mount the app directly
