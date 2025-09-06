@@ -65,7 +65,10 @@ export class SmoothComponent {
     this._pendingContext = null;
     this._pendingPortals = [];
     this._portalMap = new Map(); // id -> { targetEl, containerEl }
-    this._delegatedHandlers = new Map(); // event -> root listener
+    this._delegatedHandlers = new Map(); // Back-compat alias: event -> root listener
+    this._rootListeners = new Map(); // event -> listener
+    this._delegationRules = new Map(); // event -> [{ sel, handler }]
+    this._isComposing = false; // IME composition flag
 
     this.onCreate();
   }
@@ -270,7 +273,11 @@ export class SmoothComponent {
     }
     // Sync common properties for form elements
     if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
-      if ('value' in fromEl && el.value !== fromEl.value) el.value = fromEl.value;
+      const isActive = (typeof document !== 'undefined') ? (document.activeElement === el) : false;
+      const composing = !!this._isComposing && isActive;
+      if (!composing && 'value' in fromEl && el.value !== fromEl.value) {
+        el.value = fromEl.value;
+      }
       if ('checked' in fromEl && el.checked !== fromEl.checked) el.checked = fromEl.checked;
       if ('disabled' in fromEl) el.disabled = fromEl.disabled;
     }
@@ -469,46 +476,62 @@ export class SmoothComponent {
   
   bindEvents() {
     if (!this.element) return;
-    // Tear down any previous delegated handlers
-    if (this._delegatedHandlers && this._delegatedHandlers.size) {
-      try {
-        for (const [evt, fn] of this._delegatedHandlers.entries()) {
-          this.element.removeEventListener(evt, fn);
-        }
-      } catch {}
-      this._delegatedHandlers.clear();
-    }
-    // Build delegation table: event -> [{ sel, handler }]
-    const table = new Map();
+
+    // Build desired delegation rules: event -> [{ sel, handler }]
+    const desired = new Map();
     this.events.forEach((handler, key) => {
       const idx = key.indexOf(':');
       const event = idx >= 0 ? key.slice(0, idx) : key;
       const sel = idx >= 0 ? key.slice(idx + 1) : null;
-      if (!table.has(event)) table.set(event, []);
-      table.get(event).push({ sel, handler });
+      if (!desired.has(event)) desired.set(event, []);
+      desired.get(event).push({ sel, handler });
     });
-    // Attach a single listener per event on the root element
-    for (const [evt, rules] of table.entries()) {
-      const listener = (e) => {
-        // For each rule, perform closest() matching when selector is provided
-        for (const { sel, handler } of rules) {
-          if (sel) {
-            let matchEl = null;
-            try { matchEl = e.target && this.element && this.element.contains(e.target) ? e.target.closest(sel) : null; } catch {}
-            if (matchEl && this.element.contains(matchEl)) {
-              // Proxy event with currentTarget set to matched element for ergonomics
-              const proxy = Object.create(e);
-              try { Object.defineProperty(proxy, 'currentTarget', { value: matchEl, enumerable: true }); } catch {}
-              handler(proxy);
+
+    // Reconcile listeners: remove events no longer needed
+    for (const [evt, fn] of this._rootListeners.entries()) {
+      if (!desired.has(evt) && evt !== 'compositionstart' && evt !== 'compositionend') {
+        try { this.element.removeEventListener(evt, fn); } catch {}
+        this._rootListeners.delete(evt);
+        this._delegationRules.delete(evt);
+      }
+    }
+
+    // Add/update needed listeners
+    for (const [evt, rules] of desired.entries()) {
+      this._delegationRules.set(evt, rules);
+      if (!this._rootListeners.has(evt)) {
+        const listener = (e) => {
+          const rulesArr = this._delegationRules.get(evt) || [];
+          for (const { sel, handler } of rulesArr) {
+            if (sel) {
+              let matchEl = null;
+              try { matchEl = e.target && this.element && this.element.contains(e.target) ? e.target.closest(sel) : null; } catch {}
+              if (matchEl && this.element.contains(matchEl)) {
+                const proxy = Object.create(e);
+                try { Object.defineProperty(proxy, 'currentTarget', { value: matchEl, enumerable: true }); } catch {}
+                handler(proxy);
+              }
+            } else {
+              handler(e);
             }
-          } else {
-            // No selector: call handler for any event bubbling to root
-            handler(e);
           }
-        }
-      };
-      this.element.addEventListener(evt, listener);
-      this._delegatedHandlers.set(evt, listener);
+        };
+        this.element.addEventListener(evt, listener);
+        this._rootListeners.set(evt, listener);
+      }
+    }
+
+    // Attach IME composition listeners once
+    if (!this._compositionBound) {
+      const onStart = () => { this._isComposing = true; };
+      const onEnd = () => { this._isComposing = false; try { this._enqueueRender(); } catch {} };
+      try {
+        this.element.addEventListener('compositionstart', onStart);
+        this.element.addEventListener('compositionend', onEnd);
+        this._rootListeners.set('compositionstart', onStart);
+        this._rootListeners.set('compositionend', onEnd);
+        this._compositionBound = true;
+      } catch {}
     }
   }
   
@@ -595,7 +618,7 @@ export class SmoothComponent {
       }
       // Clear context entries for this element
       try { if (this.element) _contextRegistry.delete(this.element); } catch {}
-      // Remove delegated root listeners
+      // Remove delegated root listeners (legacy)
       if (this._delegatedHandlers && this._delegatedHandlers.size) {
         try {
           for (const [evt, fn] of this._delegatedHandlers.entries()) {
@@ -603,6 +626,18 @@ export class SmoothComponent {
           }
         } catch {}
         this._delegatedHandlers.clear();
+      }
+      // Remove reconciled root listeners
+      if (this._rootListeners && this._rootListeners.size) {
+        try {
+          for (const [evt, fn] of this._rootListeners.entries()) {
+            this.element.removeEventListener(evt, fn);
+          }
+        } catch {}
+        this._rootListeners.clear();
+      }
+      if (this._delegationRules) {
+        try { this._delegationRules.clear(); } catch {}
       }
       this.events.clear();
       this.element.innerHTML = '';

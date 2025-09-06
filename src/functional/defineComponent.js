@@ -1,15 +1,24 @@
 import { SmoothComponent } from '../component/SmoothComponent.js';
 import { Query } from '../data/query.js';
 
-// Shallow compare dependency arrays
+// Shallow compare dependency arrays with fast paths
 function depsChanged(a, b) {
+  if (a === b) return false;
   if (!a && !b) return false;
   if (!a || !b) return true;
-  if (a.length !== b.length) return true;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return true;
+  const len = a.length;
+  if (len !== b.length) return true;
+  switch (len) {
+    case 0: return false;
+    case 1: return a[0] !== b[0];
+    case 2: return a[0] !== b[0] || a[1] !== b[1];
+    case 3: return a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2];
+    default:
+      for (let i = 0; i < len; i++) {
+        if (a[i] !== b[i]) return true;
+      }
+      return false;
   }
-  return false;
 }
 
 export function defineComponent(setup) {
@@ -19,23 +28,32 @@ export function defineComponent(setup) {
     constructor(element = null, initialState = {}, props = {}) {
       super(element, initialState, props);
       // Hook storage and effect queues per instance
-      this._hooks = [];
+      this._hooks = new Array(32); // pre-size and reuse
       this._hookIndex = 0;
       this._effects = [];
       this._nextEffects = null;
       this._effectsScheduled = false;
       this._setupRan = false;
       this._setupResult = null;
+      this._ctx = null; // stable setup ctx
     }
 
     onCreate() {
       // Ensure hook/effect storage is initialized before any setup/render runs
-      if (!this._hooks) this._hooks = [];
+      if (!this._hooks) this._hooks = new Array(32);
       this._hookIndex = 0;
       if (!this._effects) this._effects = [];
       this._nextEffects = null;
       this._effectsScheduled = false;
       // Do not run setup here; setup will be invoked on each render so state values are fresh
+    }
+
+    _ensureHookCapacity(index) {
+      if (index < this._hooks.length) return;
+      // grow by doubling without replacing the array reference
+      let newLen = this._hooks.length || 1;
+      while (newLen <= index) newLen *= 2;
+      this._hooks.length = newLen;
     }
 
     _runSetup() {
@@ -58,45 +76,57 @@ export function defineComponent(setup) {
     }
 
     _buildCtx() {
-      // Build a stable context view each call; functions bound to this
+      if (this._ctx) return this._ctx;
       const self = this;
       const ctx = {};
-      // Hooks
-      ctx.useState = function(initial) { return self._useState(initial); };
-      ctx.useRef = function(initial) { return self._useRef(initial); };
-      ctx.useMemo = function(factory, deps) { return self._useMemo(factory, deps); };
-      ctx.useEffect = function(effect, deps) { return self._useEffect(effect, deps); };
-      // Composition/utilities passthrough
-      ctx.html = function(strings, ...values) { return self.html(strings, ...values); };
-      ctx.portal = function(target, content, key) { return self.portal(target, content, key); };
-      ctx.provideContext = function(Context, value) { return self.provideContext(Context, value); };
-      ctx.useContext = function(Context) { return self.useContext(Context); };
-      ctx.on = function(event, selector, handler) { return self.on(event, selector, handler); };
-      // Data hook: useQuery as thin adapter
-      ctx.useQuery = function(key, fetcher, options) { return self._useQuery(key, fetcher, options); };
-      // Accessors
+      // Hooks (stable identities)
+      const useState = function(initial) { return self._useState(initial); };
+      const useRef = function(initial) { return self._useRef(initial); };
+      const useMemo = function(factory, deps) { return self._useMemo(factory, deps); };
+      const useEffect = function(effect, deps) { return self._useEffect(effect, deps); };
+      const useQuery = function(key, fetcher, options) { return self._useQuery(key, fetcher, options); };
+      // Composition/utilities passthrough (stable)
+      const html = function(strings, ...values) { return self.html(strings, ...values); };
+      const portal = function(target, content, key) { return self.portal(target, content, key); };
+      const provideContext = function(Context, value) { return self.provideContext(Context, value); };
+      const useContext = function(Context) { return self.useContext(Context); };
+      const on = function(event, selector, handler) { return self.on(event, selector, handler); };
+      const find = function(sel) { return self.find(sel); };
+      const findAll = function(sel) { return self.findAll(sel); };
       Object.defineProperties(ctx, {
         props: { get() { return self.props; } },
         children: { get() { return self.children; } },
         element: { get() { return self.element; } }
       });
-      ctx.find = function(sel) { return self.find(sel); };
-      ctx.findAll = function(sel) { return self.findAll(sel); };
+      // assign stable funcs
+      ctx.useState = useState;
+      ctx.useRef = useRef;
+      ctx.useMemo = useMemo;
+      ctx.useEffect = useEffect;
+      ctx.useQuery = useQuery;
+      ctx.html = html;
+      ctx.portal = portal;
+      ctx.provideContext = provideContext;
+      ctx.useContext = useContext;
+      ctx.on = on;
+      ctx.find = find;
+      ctx.findAll = findAll;
+      this._ctx = ctx;
       return ctx;
     }
 
     // Hook implementations
     _useState(initial) {
       const i = this._hookIndex++;
+      this._ensureHookCapacity(i);
       if (!this._hooks[i]) {
         const initVal = (typeof initial === 'function') ? initial() : initial;
         const record = { v: initVal };
         const set = (next) => {
           const prev = record.v;
           const value = (typeof next === 'function') ? next(prev) : next;
-          if (value !== prev) {
+          if (!Object.is(value, prev)) {
             record.v = value;
-            // schedule re-render
             this._enqueueRender();
           }
         };
@@ -108,6 +138,7 @@ export function defineComponent(setup) {
 
     _useRef(initial) {
       const i = this._hookIndex++;
+      this._ensureHookCapacity(i);
       if (!this._hooks[i]) {
         this._hooks[i] = { kind: 'ref', ref: { current: initial } };
       }
@@ -116,10 +147,11 @@ export function defineComponent(setup) {
 
     _useMemo(factory, deps) {
       const i = this._hookIndex++;
+      this._ensureHookCapacity(i);
       const entry = this._hooks[i];
       if (!entry || entry.kind !== 'memo' || depsChanged(entry.deps, deps)) {
         const value = factory();
-        this._hooks[i] = { kind: 'memo', value, deps: deps ? deps.slice() : deps };
+        this._hooks[i] = { kind: 'memo', value, deps };
         return value;
       }
       return entry.value;
@@ -127,8 +159,9 @@ export function defineComponent(setup) {
 
     _useEffect(create, deps) {
       const i = this._hookIndex++;
+      this._ensureHookCapacity(i);
       // Stage effect for this render; actual run happens post-render
-      const eff = { create, deps: deps ? deps.slice() : deps };
+      const eff = { create, deps };
       if (!this._nextEffects) this._nextEffects = [];
       this._nextEffects[i] = eff;
       // Ensure placeholder exists so hook indices align
@@ -138,6 +171,7 @@ export function defineComponent(setup) {
 
     _useQuery(key, fetcher, options = {}) {
       const i = this._hookIndex++;
+      this._ensureHookCapacity(i);
       const k = String(key);
       let entry = this._hooks[i];
       if (!entry || entry.kind !== 'query' || entry.key !== k) {
@@ -153,7 +187,7 @@ export function defineComponent(setup) {
         const unsub = Query.subscribe(k, (snap) => {
           // Update snapshot and request re-render
           entry.snapshot = snap;
-          // Prefer immediate render to reduce latency in tests and UI
+          // Back-compat: render immediately when mounted; otherwise enqueue
           if (self.element) {
             try { self.render(); } catch {}
           } else {
@@ -168,9 +202,6 @@ export function defineComponent(setup) {
           if (typeof cur !== 'undefined') return;
           try { Query.fetch(k, typeof fetcher === 'function' ? fetcher : undefined, options); } catch {}
         });
-      } else {
-        // Existing entry: do not auto-fetch on every render; consumer can call helpers.refetch/invalidate
-        // We still allow initial fetcher to be registered by Query; subsequent renders are no-ops here
       }
       const getData = () => (entry && entry.snapshot ? entry.snapshot.data : Query.getData(k));
       const proxy = new Proxy({}, {
@@ -299,7 +330,7 @@ export function defineComponent(setup) {
 
     template() {
       this._hookIndex = 0;
-      // Build a fresh ctx for user render each call
+      // Build a stable ctx (created lazily once)
       const ctx = this._buildCtx();
       // Invoke setup on every render to compute current render with fresh state values
       const res = setup(ctx) || {};
