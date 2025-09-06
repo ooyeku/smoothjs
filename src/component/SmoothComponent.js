@@ -368,6 +368,18 @@ export class SmoothComponent {
     // Determine if keyed reconciliation should be used
     const hasKeys = newChildren.some(n => this._getKey(n) != null) || oldChildren.some(n => this._getKey(n) != null);
     if (hasKeys) {
+      // Dev diagnostic: warn when mixing keyed and unkeyed in dynamic lists (can be error-prone)
+      try {
+        const env = (typeof process !== 'undefined' && process && process.env) ? process.env : {};
+        const isProd = env && (env.NODE_ENV === 'production');
+        if (!isProd) {
+          const hasKeyed = newChildren.some(n => this._getKey(n) != null);
+          const hasUnkeyed = newChildren.some(n => this._getKey(n) == null);
+          if (hasKeyed && hasUnkeyed) {
+            console.warn('[smoothjs] Mixing keyed and unkeyed children in a dynamic list may lead to surprising reconciliation. Prefer all-keyed.');
+          }
+        }
+      } catch {}
       // Build maps for old keyed children
       const oldKeyToNode = new Map();
       const oldKeyToIndex = new Map();

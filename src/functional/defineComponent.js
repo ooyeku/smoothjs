@@ -357,6 +357,21 @@ export function defineComponent(setup) {
       }
     }
 
+    // Ensure event handlers declared in setup() are bound during hydrate
+    hydrate(selector, options = null) {
+      // Pre-merge options so setup can see initial props/state if it needs them
+      if (options && typeof options === 'object') {
+        if (options.props && typeof options.props === 'object') this.props = { ...this.props, ...options.props };
+        if (options.state && typeof options.state === 'object') this.state = { ...this.state, ...options.state };
+        if (Array.isArray(options.children)) this.children = options.children.slice();
+      }
+      if (!this._setupRan) {
+        try { this._runSetup(); } catch {}
+      }
+      // Delegate to base hydrate to perform element selection and listener binding
+      return super.hydrate(selector, options);
+    }
+
     /**
      * Cleans up resources and subscriptions when the component or instance is unmounted.
      * This method performs the following tasks:
