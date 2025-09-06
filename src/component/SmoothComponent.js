@@ -69,6 +69,9 @@ export class SmoothComponent {
     this._rootListeners = new Map(); // event -> listener
     this._delegationRules = new Map(); // event -> [{ sel, handler }]
     this._isComposing = false; // IME composition flag
+    this._range = null; // per-instance Range cache
+    this._lastHtml = null; // last template string for no-op detection
+    this._postScheduled = false; // microtask scheduler flag
 
     this.onCreate();
   }
@@ -145,26 +148,24 @@ export class SmoothComponent {
   }
   
   html(strings, ...values) {
-    let result = '';
+    const parts = [];
     for (let i = 0; i < strings.length; i++) {
-      result += strings[i];
+      parts.push(strings[i]);
       if (i < values.length) {
         const value = values[i];
         if (value && value.__smooth_portal__ === true) {
           // portal placeholder contributes nothing to inline HTML
-          result += '';
         } else if (value == null) {
           // null/undefined => empty string
-          result += '';
         } else if (Array.isArray(value)) {
           // arrays joined by comma per tests expectation
-          result += value.join(',');
+          parts.push(value.join(','));
         } else {
-          result += String(value);
+          parts.push(String(value));
         }
       }
     }
-    return result;
+    return parts.join('');
   }
 
   // Composition helpers
@@ -221,7 +222,6 @@ export class SmoothComponent {
       // get or create container in target
       let rec = this._portalMap.get(p.key);
       if (!rec || !rec.targetEl || rec.targetEl !== targetEl) {
-        // if existing container exists in a different target, remove it
         if (rec && rec.containerEl && rec.containerEl.parentNode) {
           try { rec.containerEl.parentNode.removeChild(rec.containerEl); } catch {}
         }
@@ -231,14 +231,13 @@ export class SmoothComponent {
         rec = { targetEl, containerEl };
         this._portalMap.set(p.key, rec);
       }
-      // Build new content fragment using Range#createContextualFragment
+      // Build new content fragment using per-instance Range
       let frag = document.createDocumentFragment();
       const c = (typeof p.content === 'function') ? p.content.call(this, this) : p.content;
       if (typeof c === 'string') {
         try {
-          const range = document.createRange();
-          range.selectNode(rec.containerEl);
-          frag = range.createContextualFragment(c);
+          const range = this._getRange(rec.containerEl);
+          if (range) frag = range.createContextualFragment(c);
         } catch {
           const tmp = document.createElement('div');
           tmp.innerHTML = c;
@@ -253,7 +252,6 @@ export class SmoothComponent {
       } else if (c != null) {
         frag.appendChild(document.createTextNode(String(c)));
       }
-      // Patch target container children
       this._patchChildren(
         rec.containerEl,
         Array.from(rec.containerEl.childNodes),
@@ -274,17 +272,39 @@ export class SmoothComponent {
   _getKey(node) {
     return this._isElement(node) ? (node.getAttribute('data-key') || null) : null;
   }
-  _setAttributes(el, fromEl) {
-    // Remove old attrs not in fromEl
-    const oldAttrs = el.attributes;
-    for (let i = oldAttrs.length - 1; i >= 0; i--) {
-      const name = oldAttrs[i].name;
-      if (!fromEl.hasAttribute(name)) el.removeAttribute(name);
+  _getRange(ctxNode) {
+    if (typeof document === 'undefined') return null;
+    if (!this._range) {
+      try { this._range = document.createRange(); } catch { this._range = null; }
     }
-    // Set/update attrs
-    for (let i = 0; i < fromEl.attributes.length; i++) {
-      const { name, value } = fromEl.attributes[i];
-      if (el.getAttribute(name) !== value) el.setAttribute(name, value);
+    if (this._range && ctxNode) {
+      try { this._range.selectNode(ctxNode); }
+      catch { try { this._range.selectNodeContents(ctxNode); } catch {} }
+    }
+    return this._range;
+  }
+  _setAttributes(el, fromEl) {
+    // Fast-path: if attributes sets are identical by name/value, skip churn
+    const oldAttrs = el.attributes;
+    const newAttrs = fromEl.attributes;
+    let identical = oldAttrs.length === newAttrs.length;
+    if (identical) {
+      for (let i = 0; i < newAttrs.length; i++) {
+        const { name, value } = newAttrs[i];
+        if (el.getAttribute(name) !== value) { identical = false; break; }
+      }
+    }
+    if (!identical) {
+      // Remove old attrs not in fromEl
+      for (let i = oldAttrs.length - 1; i >= 0; i--) {
+        const name = oldAttrs[i].name;
+        if (!fromEl.hasAttribute(name)) el.removeAttribute(name);
+      }
+      // Set/update attrs
+      for (let i = 0; i < newAttrs.length; i++) {
+        const { name, value } = newAttrs[i];
+        if (el.getAttribute(name) !== value) el.setAttribute(name, value);
+      }
     }
     // Sync common properties for form elements
     if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
@@ -469,38 +489,53 @@ export class SmoothComponent {
     try {
       this.isRendering = true;
       const html = this.template();
-      // Build a DocumentFragment for the new content to avoid clones
-      let frag = document.createDocumentFragment();
-      if (html == null) {
-        // nothing
-      } else if (typeof html === 'string') {
-        try {
-          const range = document.createRange();
-          range.selectNode(this.element);
-          frag = range.createContextualFragment(html);
-        } catch {
-          const tmp = document.createElement('div');
-          tmp.innerHTML = html;
-          while (tmp.firstChild) frag.appendChild(tmp.firstChild);
-        }
-      } else if (html instanceof Node) {
-        frag.appendChild(html);
+
+      // No-op render detection for string templates
+      let skippedPatch = false;
+      if (typeof html === 'string') {
+        const same = this._lastHtml != null && this._lastHtml === html;
+        const hasDOM = this.element && this.element.childNodes && this.element.childNodes.length > 0;
+        // Only skip when mounted and DOM is already present
+        skippedPatch = same && this._mounted && hasDOM;
+        this._lastHtml = html;
       } else {
-        const tmp = document.createTextNode(String(html));
-        frag.appendChild(tmp);
+        this._lastHtml = null; // non-string outputs disable string cache
       }
-      // Capture children arrays once
-      const oldChildren = Array.from(this.element.childNodes);
-      const newChildren = Array.from(frag.childNodes);
-      // Patch children of root element to match the new content
-      this._patchChildren(
-        this.element,
-        oldChildren,
-        newChildren
-      );
-      this.bindEvents();
-      // Process any pending portals after main patch
-      try { this._processPortals && this._processPortals(); } catch (e) { console.error('portal processing error:', e); }
+
+      if (!skippedPatch) {
+        // Build a DocumentFragment for the new content to avoid clones
+        let frag = document.createDocumentFragment();
+        if (html == null) {
+          // nothing
+        } else if (typeof html === 'string') {
+          try {
+            const range = this._getRange(this.element);
+            if (range) frag = range.createContextualFragment(html);
+          } catch {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            while (tmp.firstChild) frag.appendChild(tmp.firstChild);
+          }
+        } else if (html instanceof Node) {
+          frag.appendChild(html);
+        } else {
+          const tmp = document.createTextNode(String(html));
+          frag.appendChild(tmp);
+        }
+        // Capture children arrays once
+        const oldChildren = Array.from(this.element.childNodes);
+        const newChildren = Array.from(frag.childNodes);
+        // Patch children of root element to match the new content
+        this._patchChildren(
+          this.element,
+          oldChildren,
+          newChildren
+        );
+      }
+
+      // Coalesce post-patch work (listeners + portals) into one microtask
+      this._schedulePostPatch();
+
       const firstMount = !this._mounted;
       if (firstMount) {
         this._mounted = true;
@@ -558,6 +593,17 @@ export class SmoothComponent {
     }
   }
   
+  _schedulePostPatch() {
+    if (this._postScheduled) return;
+    this._postScheduled = true;
+    Promise.resolve().then(() => {
+      this._postScheduled = false;
+      if (!this.element) return;
+      try { this.bindEvents(); } catch {}
+      try { this._processPortals && this._processPortals(); } catch (e) { console.error('portal processing error:', e); }
+    });
+  }
+
   bindEvents() {
     if (!this.element) return;
 
@@ -725,6 +771,10 @@ export class SmoothComponent {
       }
       this.events.clear();
       this.element.innerHTML = '';
+      // Reset small caches to avoid stale state across lifecycles
+      this._lastHtml = null;
+      this._postScheduled = false;
+      this._range = null;
       this.element = null;
       this._mounted = false;
     }
