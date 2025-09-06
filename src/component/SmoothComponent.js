@@ -439,8 +439,21 @@ export class SmoothComponent {
         }
       }
 
+      // In mixed lists, remove obsolete unkeyed nodes that occupy positions
+      // where new children expect keyed nodes (e.g., placeholder rows like "No items")
+      const desiredLen = newChildren.length;
+      for (let i = 0; i < Math.min(parentEl.childNodes.length, desiredLen); i++) {
+        if (keyedPositions[i]) {
+          const n = parentEl.childNodes[i];
+          if (this._getKey(n) == null) {
+            parentEl.removeChild(n);
+            i--; // re-check this index after removal
+          }
+        }
+      }
+
       // Trim extra nodes if parent has more than needed
-      while (parentEl.childNodes.length > newChildren.length) {
+      while (parentEl.childNodes.length > desiredLen) {
         parentEl.removeChild(parentEl.lastChild);
       }
       return;
@@ -637,8 +650,14 @@ export class SmoothComponent {
               let matchEl = null;
               try { matchEl = e.target && this.element && this.element.contains(e.target) ? e.target.closest(sel) : null; } catch {}
               if (matchEl && this.element.contains(matchEl)) {
-                const proxy = Object.create(e);
-                try { Object.defineProperty(proxy, 'currentTarget', { value: matchEl, enumerable: true }); } catch {}
+                const proxy = new Proxy(e, {
+                  get(target, prop) {
+                    if (prop === 'currentTarget') return matchEl;
+                    // Use Reflect.get without proxy receiver so native getters see the original event
+                    const val = Reflect.get(target, prop);
+                    return typeof val === 'function' ? val.bind(target) : val;
+                  }
+                });
                 handler(proxy);
               }
             } else {

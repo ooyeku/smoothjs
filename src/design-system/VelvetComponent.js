@@ -2,6 +2,11 @@ import { SmoothComponent } from '../component/SmoothComponent.js';
 import { Velvet } from './velvet.js';
 import { defaultTheme } from './theme.js';
 
+/**
+ * The VelvetComponent class extends the SmoothComponent and introduces advanced styling, animation,
+ * and theming capabilities. It acts as a wrapper to manage utility classes, pre-defined component
+ * styles, animations, and dynamic theming.
+ */
 export class VelvetComponent extends SmoothComponent {
   constructor(element, initialState, props) {
     super(element, initialState, props);
@@ -9,6 +14,12 @@ export class VelvetComponent extends SmoothComponent {
     this.theme = defaultTheme;
   }
   
+  /**
+   * Processes the given styles, handling utility classes or returning processed style objects.
+   *
+   * @param {string|Object} styles - The styles to be processed. Can be a string of utility classes or a style object.
+   * @return {string} The processed styles as a string of class names or the result of processing a style object.
+   */
   vs(styles) {
     if (typeof styles === 'string') {
       // Handle utility classes or preset styles
@@ -24,6 +35,14 @@ export class VelvetComponent extends SmoothComponent {
     return this.v.style(styles);
   }
   
+  /**
+   * Generates a styled HTML element as a string with the given tag, styles, and additional properties.
+   *
+   * @param {string} tag - The HTML tag of the element to generate (e.g., 'div', 'span').
+   * @param {Object} styles - An object representing CSS styles for the element.
+   * @param {Object} [props={}] - Optional additional properties for the HTML element. Event handlers (e.g., onclick) will not be included.
+   * @return {string} - The string representation of the styled HTML element with applied class and properties.
+   */
   styled(tag, styles, props = {}) {
     const className = this.vs(styles);
     const propsStr = Object.entries(props)
@@ -42,6 +61,19 @@ export class VelvetComponent extends SmoothComponent {
     return `</${tag}>`;
   }
   
+  /**
+   * Applies an animation to a given HTML element with specified options.
+   *
+   * @param {HTMLElement|string} element The target HTML element or a selector string to reference the element.
+   * @param {string} animation The name of the animation to apply.
+   * @param {Object} [options] Optional configuration for the animation.
+   * @param {string} [options.duration='250ms'] The duration of the animation.
+   * @param {string} [options.easing='ease'] The easing function for the animation.
+   * @param {string} [options.delay='0ms'] The delay before the animation starts.
+   * @param {string} [options.fillMode='both'] The fill mode of the animation.
+   * @param {Function} [options.onComplete] A callback function to execute when the animation ends.
+   * @return {void} This method does not return a value.
+   */
   animate(element, animation, options = {}) {
     const {
       duration = '250ms',
@@ -67,6 +99,13 @@ export class VelvetComponent extends SmoothComponent {
     }
   }
   
+  /**
+   * Creates a ripple effect on the clicked button element.
+   * This effect visually originates from the click point and expands outward.
+   *
+   * @param {MouseEvent} event - The mouse event triggered by a user interaction, typically a click.
+   * @return {void} Does not return a value.
+   */
   ripple(event) {
     const button = event.currentTarget;
     const rect = button.getBoundingClientRect();
@@ -96,12 +135,26 @@ export class VelvetComponent extends SmoothComponent {
     setTimeout(() => ripple.remove(), 600);
   }
   
-  // Helper to merge theme values with custom styles
+
+  /**
+   * Merges the specified theme's styles with custom styles.
+   * Retrieves the styles associated with the given theme key and combines them with the custom styles provided.
+   *
+   * @param {string} themeKey - The key used to identify the theme to retrieve.
+   * @param customStyles {Object} - An object containing custom styles to be merged with the retrieved theme styles.
+   * @return {Object} - The merged theme styles, including the custom styles.
+   **/
   withTheme(themeKey, customStyles = {}) {
     const themeValue = this.getThemeValue(themeKey);
     return { ...themeValue, ...customStyles };
   }
   
+  /**
+   * Retrieves a value from a theme object based on a dot-separated path.
+   *
+   * @param {string} path - The dot-separated path representing the key hierarchy in the theme object.
+   * @return {any} The value found at the specified path in the theme object, or an empty object if the path does not exist.
+   */
   getThemeValue(path) {
     const keys = path.split('.');
     let value = this.theme;
@@ -112,7 +165,12 @@ export class VelvetComponent extends SmoothComponent {
     return value;
   }
   
-  // Preset component styles
+  /**
+   * Retrieves the style configuration for a given preset identifier.
+   *
+   * @param {string} preset - The key representing a specific style preset.
+   * @return {object|string} The configuration object for the preset style if found, or an empty string if the preset key does not exist.
+   */
   getPresetStyle(preset) {
     const presets = {
       'button.primary': this.v.button('primary', 'md'),
