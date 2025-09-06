@@ -62,7 +62,7 @@ Example:
 ```
 Batch updates:
 
-- All setState calls in the same microtask are batched automatically; for explicit batching across functions use utils.batch(() => { ... }).
+- All setState calls in the same microtask are batched automatically; for explicit batching across functions use Component.batch(() => { /* updates */ }).
 
 Children and composition:
 
@@ -258,7 +258,7 @@ import { Testing } from 'smoothjs';
 ## Performance tips
 
 - Prefer keyed lists (data-key on rows/items) for stable reconciliation.
-- Coalesce multiple setState calls within microtasks; consider utils.batch.
+- Coalesce multiple setState calls within microtasks; consider Component.batch for explicit transactions.
 - Use Query SWR/focus policies for responsive data; avoid unnecessary refetches.
 - Use Velvet once per app; its engine batches CSS insertions.
 
@@ -266,6 +266,12 @@ import { Testing } from 'smoothjs';
 ## Examples and docs
 
 - Browse the runnable examples: examples/index.html (served via Vite in dev).
+- Components to try:
+  - examples/components/KeyedList.js
+  - examples/components/BatchingDemo.js
+  - examples/components/PortalKeyed.js
+  - examples/components/HttpErrorDemo.js
+  - examples/components/EffectCleanup.js
 - See docs/roadmap.md for the v1.0.0 roadmap and feature breakdown.
 - Check tests/ for usage patterns of core pieces.
 
@@ -354,3 +360,214 @@ FAQ additions:
 - Event handling: continue to use delegated events to limit listeners.
 - Security: sanitization behavior is unchanged; never inject untrusted HTML; prefer Security.sanitize for unsafe inputs.
 - IDE/lint: avoid calling hooks conditionally; keep call orders stable.
+
+
+## Advanced topics
+
+### Direct batching API
+
+Why: Explicit batching helps for large list updates or transactional state changes beyond the automatic microtask coalescing.
+
+```javascript
+// Explicit batching for complex flows
+import { Component } from 'smoothjs';
+
+Component.batch(() => {
+  comp.setState({ a: 1 });
+  comp.setState({ b: 2 });
+  comp.setProps({ ready: true });
+}); // one scheduled render
+```
+Notes
+- Batching coalesces setState/setProps into a single scheduled render. State updates queued during render are also coalesced safely.
+- Re-entrant renders: if a render schedules more updates, they are queued and flushed after the current patch cycle.
+
+### Keyed lists and reconciliation best practices
+
+Good: stable keys
+```javascript
+items.map(i => `<li data-key="${i.id}">${i.title}</li>`).join('')
+```
+Avoid: index as key when order changes
+```javascript
+items.map((i, idx) => `<li data-key="${idx}">${i.title}</li>`).join('')
+```
+Mixing keyed and unkeyed:
+- If a parent renders a mix, keyed nodes are matched by key first; unkeyed are reconciled by position. Prefer all-keyed for dynamic lists.
+
+### Event delegation patterns and currentTarget
+
+Use container-level listeners with optional selectors. currentTarget is proxied to the matched element.
+```javascript
+on('click', '[data-action="delete"]', (e) => {
+  const row = e.currentTarget.closest('[data-key]');
+  doDelete(row?.getAttribute('data-key'));
+});
+```
+Patterns
+- Form field change map using a single change listener.
+- Row actions (edit/delete) using data-action attributes.
+
+### Focus and selection preservation
+
+The renderer preserves focus and selection when patching the same input element.
+```javascript
+// Safe updates: same input node patched -> caret preserved
+// inside a class component's template():
+return '<input id="q" name="q" value="' + (this.state.q || '') + '">';
+```
+Caveats
+- Replacing nodes (e.g., changing data-key or swapping element type) will lose focus; prefer patching attributes.
+
+### Error boundaries: per-component and global
+
+Local
+```javascript
+class GlobalErrorBoundary /* extends Component */ {
+  renderError(err) {
+    return '<div class="error">Oops: ' + err.message + '</div>';
+  }
+}
+```
+Global boundary pattern: wrap your app and render children; capture errors via onError and log/recover. You can rethrow to bubble to a higher boundary.
+
+### Portals: keyed, lifecycle, and cleanup
+
+Keep a stable portal container across toggles using a custom key.
+```javascript
+// Keep a stable portal container across toggles (inside a render/template)
+this.portal('#toast-root', () => '<div data-key="toast">' + this.state.msg + '</div>', 'toast');
+```
+Portals can accept arrays or a function returning content for deferred rendering.
+
+### Context: provider patterns and defaults
+
+```javascript
+const Theme = createContext('light');
+provideContext(Theme, 'dark');
+const theme = useContext(Theme); // 'dark'
+```
+- Providers can be nested; inner providers override outer values.
+- If no provider exists, useContext returns the context's defaultValue.
+
+### Functional hooks: effects and cleanup rules
+
+```javascript
+useEffect(() => {
+  const id = setInterval(tick, 1000);
+  return () => clearInterval(id); // runs when deps change or on unmount
+}, [props.userId]);
+```
+Rules
+- Cleanup runs before the next effect when deps change, and on unmount.
+- Deps are shallow-compared.
+- Do not call hooks conditionally; maintain stable call order.
+
+### Data layer: SWR, focus/reconnect refetch, tags and optimistic mutations
+
+```javascript
+// SWR: fast paint + background revalidate when stale
+const [todos, q] = useQuery('todos', () => http.get('/api/todos'), { swr: true, staleTime: 30_000, refetchOnWindowFocus: true });
+
+// Optimistic mutation
+await Query.mutate('todos', () => http.post('/api/todos', newTodo), {
+  optimisticData: (prev) => [...(prev||[]), newTodo],
+  rollbackOnError: true,
+  invalidateTags: ['todos']
+});
+```
+Also see Query.invalidate('todos') and Query.invalidateTag('tag').
+
+### HTTP client: error handling and timeouts
+
+```javascript
+try {
+  await api.get('/users', { timeout: 3000 });
+} catch (err) {
+  if (err.name === 'HTTPError') {
+    console.error(err.status, err.url, err.body);
+  }
+}
+```
+- HTTPError includes status, statusText, url, body.
+- Use http.withBase('/api', { timeout }) to set defaults.
+
+### Router: programmatic navigation, guards, active links, and 404
+
+```javascript
+router.beforeEach((to, from) => {
+  if (!auth() && to.path.startsWith('/protected')) return '/login';
+});
+router.route('(.*)', NotFound);
+```
+- Programmatic nav: router.navigate(path, { replace? }).
+- Active links: router.link('/path', 'Label', { exact: false, activeClass: 'active' }).
+- Nested outlets render into [data-router-outlet].
+
+### Store: select with isEqual and component integration
+
+```javascript
+const unsub = store.select((s) => s.user, (user) => comp.setState({ user }), (a, b) => a?.id === b?.id);
+```
+- For class components, update via setState; for functional, call a setter or request re-render via state.
+
+### Testing: queries, act, and async patterns
+
+```javascript
+const { instance, container, unmount } = Testing.mount(MyComp);
+Testing.fire(Testing.getByText(container, '+1'), 'click');
+await Testing.waitFor(() => container.querySelector('#done'));
+unmount();
+```
+- getByTestId/getByText helpers; use act() to flush async state if needed.
+- Clean up by calling unmount between tests.
+
+### Accessibility: focus trap lifecycle and announcements
+
+```javascript
+useEffect(() => {
+  const cleanup = A11y.focusTrap('#dialog');
+  A11y.announce('Dialog opened', { politeness: 'polite' });
+  return cleanup;
+}, [open]);
+```
+
+### TypeScript quickstart
+
+```typescript
+import { Component, defineComponent } from 'smoothjs';
+
+class TypedCounter extends Component<{ n: number }, {}> {
+  constructor() { super(null, { n: 0 }); }
+  template() { return `<div>${this.state.n}</div>`; }
+}
+
+const TypedFn = defineComponent(({ useState, html }) => {
+  const [n, setN] = useState<number>(0);
+  const render = () => html`<button id="inc">+1</button><span>${n}</span>`;
+  return { render };
+});
+```
+
+### SSR + hydration pitfalls and tips
+
+- Prefer template() returning strings on the server; avoid non-deterministic content (random IDs) unless deterministic.
+- Ensure data-key consistency between server and client output to avoid reordering during hydration.
+
+### Performance checklist
+
+- Use data-key on dynamic lists.
+- Avoid replacing root nodes; patch attributes instead.
+- Use Component.batch for multi-step updates.
+- Debounce user typing before network calls.
+- Use Query SWR and staleTime for responsive fetching; avoid unnecessary refetches.
+
+## New runnable examples
+
+- examples/components/KeyedList.js — correct keyed list updates with reorder/insert/remove.
+- examples/components/BatchingDemo.js — demonstrates Component.batch.
+- examples/components/PortalKeyed.js — portal with a stable custom key.
+- examples/components/HttpErrorDemo.js — catching HTTPError and displaying details.
+- examples/components/EffectCleanup.js — effect cleanup and re-run on deps change.
+
+Cross-links: see the Examples and docs section for how to run examples.
