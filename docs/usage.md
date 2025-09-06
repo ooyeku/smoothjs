@@ -266,6 +266,10 @@ import { Testing } from 'smoothjs';
 ## Examples and docs
 
 - Browse the runnable examples: examples/index.html (served via Vite in dev).
+- Run examples: npm run examples (opens the examples index).
+- Run Todo app: npm run todo (serves examples/todo as a standalone app).
+- Run Counter app: npm run counter (serves examples/counter as a standalone app).
+- Run Forms app: npm run forms (serves examples/forms as a standalone app).
 - Components to try:
   - examples/components/KeyedList.js
   - examples/components/BatchingDemo.js

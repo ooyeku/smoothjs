@@ -1,4 +1,4 @@
-import { defineComponent, utils } from '../../index.js';
+import { defineComponent, utils, Velvet } from '../../index.js';
 import { 
   counterStore, 
   preferencesStore, 
@@ -10,7 +10,9 @@ import {
 } from '../stores/index.js';
 
 // Counter Page (Advanced Global Store) — functional
-export const CounterPage = defineComponent(({ html, on, useState }) => {
+export const CounterPage = defineComponent((ctx) => {
+  const { html, on, useState } = ctx;
+  const { vs } = Velvet.useVelvet(ctx);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [animationDuration, setAnimationDuration] = useState(300);
   const [isEven, setIsEven] = useState(false);
@@ -56,25 +58,33 @@ export const CounterPage = defineComponent(({ html, on, useState }) => {
     const cat = category;
     const app = appStatus || {};
 
+    const outerClass = vs({ base: { maxWidth: '960px', margin: '0 auto', padding: '0.75rem 1rem' } });
+    const cardClass = vs({ base: { background: 'white', borderRadius: '12px', padding: '1rem 1.25rem', boxShadow: '0 10px 20px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.08)', border: '1px solid #e5e7eb' } });
+    const btn = vs({ base: { padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', border: '1px solid #d1d5db', background: '#f3f4f6', color: '#374151' }, hover: { background: '#e5e7eb' } });
+    const btnPrimary = vs({ base: { padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', border: '1px solid #0ea5e9', background: '#0ea5e9', color: 'white' }, hover: { background: '#0284c7', borderColor: '#0284c7' } });
+    const counterBox = vs({ base: { fontSize: '3rem', fontWeight: '700', color: '#0ea5e9', minWidth: '120px', textAlign: 'center', padding: '0.5rem 1rem', background: '#f0f9ff', borderRadius: '12px', border: '2px solid #bae6fd' } });
+    const row = vs({ base: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '1.5rem' } });
+    const grid2 = vs({ base: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginBottom: '1.5rem' } });
+
     return html`
-      <div style="max-width: 960px; margin: 0 auto; padding: 0.75rem 1rem;">
-        <div style="background: white; border-radius: 12px; padding: 1rem 1.25rem; box-shadow: 0 10px 20px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.08); border: 1px solid #e5e7eb;">
+      <div class="${outerClass}">
+        <div class="${cardClass}">
           <div style="text-align: center; margin-bottom: 1.5rem;">
             <h2 style="margin: 0 0 0.5rem 0; font-size: 1.875rem; font-weight: 600;">Advanced Counter</h2>
             <p style="margin: 0; color: #6b7280;">Multi-store state management with complex selectors</p>
           </div>
           
-          <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1.5rem;">
-            <button id="dec" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">-</button>
-            <div style="font-size: 3rem; font-weight: 700; color: #0ea5e9; min-width: 120px; text-align: center; padding: 0.5rem 1rem; background: #f0f9ff; border-radius: 12px; border: 2px solid #bae6fd;">${count}</div>
-            <button id="inc" style="background: #0ea5e9; color: white; border: 1px solid #0ea5e9; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">+</button>
+          <div class="${row}">
+            <button id="dec" class="${btn}">-</button>
+            <div class="${counterBox}">${count}</div>
+            <button id="inc" class="${btnPrimary}">+</button>
           </div>
           
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;">
-            <button id="inc2" style="background: #0ea5e9; color: white; border: 1px solid #0ea5e9; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">++ twice</button>
-            <button id="reset" style="background: transparent; color: #6b7280; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">Reset</button>
-            <button id="replace10" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">Set to 10</button>
-            <button id="toggle-advanced" style="background: transparent; color: #6b7280; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">
+          <div class="${grid2}">
+            <button id="inc2" class="${btnPrimary}" style="font-size: 0.875rem;">++ twice</button>
+            <button id="reset" class="${btn}" style="font-size: 0.875rem;">Reset</button>
+            <button id="replace10" class="${btn}" style="font-size: 0.875rem;">Set to 10</button>
+            <button id="toggle-advanced" class="${btn}" style="font-size: 0.875rem;">
               ${showAdvanced ? 'Hide' : 'Show'} Advanced
             </button>
           </div>

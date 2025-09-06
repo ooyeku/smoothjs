@@ -8,8 +8,12 @@ export default defineConfig(({ command, mode }) => {
   const isBuild = command === 'build';
 
   if (!isBuild) {
+    const isTodo = mode === 'todo' || process.env.EXAMPLE_ROOT === 'todo';
+    const isCounter = mode === 'counter' || process.env.EXAMPLE_ROOT === 'counter';
+    const isForms = mode === 'forms' || process.env.EXAMPLE_ROOT === 'forms';
+    const rootDir = isTodo ? 'examples/todo' : (isCounter ? 'examples/counter' : (isForms ? 'examples/forms' : 'examples'));
     return {
-      root: path.resolve(__dirname, 'examples'),
+      root: path.resolve(__dirname, rootDir),
       server: {
         port: 5173,
         open: true,
