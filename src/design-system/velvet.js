@@ -1,6 +1,7 @@
 import { hash } from '../utils/hash.js';
 import { VelvetUtilities } from './utilities.js';
 import { defaultTheme } from './theme.js';
+import { injectThemeVariables } from './tokens.js';
 
 // Global cache and buffer for Velvet across all instances
 const V_GLOBAL = (() => {
@@ -16,7 +17,10 @@ const V_GLOBAL = (() => {
     styleEl: null,
     sheet: null,
     objToClass: new WeakMap(), // styleObj -> className
+    normalizedCache: new Map(), // JSON.stringify(normalized) -> className
     propMemo: new Map(), // camelCase -> kebab-case memo
+    keyframes: new Set(), // registered @keyframes names
+    varsApplied: false,
     nonce: null,
   };
   return g.__SMOOTH_VELVET__;
@@ -204,10 +208,20 @@ export class Velvet {
     if (typeof styleDefinition === 'string') {
       return styleDefinition;
     }
-    // Use WeakMap for referentially stable objects
+    // Deterministic by-value caching + referential caching
+    const normalized = this._normalize(styleDefinition || {});
+    let normStr = '';
+    try { normStr = JSON.stringify(normalized); } catch { normStr = ''; }
     let className = V_GLOBAL.objToClass.get(styleDefinition);
     if (!className) {
-      className = this.generateClassName(styleDefinition);
+      if (normStr && V_GLOBAL.normalizedCache.has(normStr)) {
+        className = V_GLOBAL.normalizedCache.get(normStr);
+      } else {
+        className = this.generateClassName(styleDefinition);
+        if (normStr) {
+          try { V_GLOBAL.normalizedCache.set(normStr, className); } catch {}
+        }
+      }
       try { V_GLOBAL.objToClass.set(styleDefinition, className); } catch {}
     }
     if (!V_GLOBAL.cache.has(className)) {
@@ -278,12 +292,32 @@ export class Velvet {
       m.set(key, v);
       return v;
     };
+    const UNITLESS = new Set([
+      'opacity','zIndex','lineHeight','fontWeight','flex','flexGrow','flexShrink','order','zoom','scale','scaleX','scaleY','scaleZ','tabSize'
+    ]);
+    const isDev = (() => {
+      try { return !(typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production'); } catch { return true; }
+    })();
     const parts = [];
     for (const key of keys) {
-      const value = obj[key];
-      if (value === undefined) continue;
+      let value = obj[key];
+      if (value === undefined || value === null) continue;
       const cssKey = toKebab(key);
-      parts.push(`${cssKey}: ${value}`);
+      // Drop obviously invalid values in dev
+      const t = typeof value;
+      if (t === 'object' || t === 'function') {
+        if (isDev) { try { console.warn('[velvet] Dropping invalid CSS value for', cssKey, value); } catch {} }
+        continue;
+      }
+      // Normalize numeric values
+      if (t === 'number') {
+        if (value === 0) {
+          value = 0; // strip units for zero
+        } else if (!UNITLESS.has(key)) {
+          value = `${value}px`;
+        }
+      }
+      parts.push(`${cssKey}: ${String(value)}`);
     }
     return parts.join('; ');
   }
@@ -477,7 +511,32 @@ export class Velvet {
       }
     });
   }
-
+  
+  // Keyframes registry and dedupe
+  static registerKeyframes(name, frames) {
+    const n = String(name);
+    if (V_GLOBAL.keyframes.has(n)) return n;
+    let body = '';
+    if (typeof frames === 'string') {
+      body = frames.trim();
+    } else if (frames && typeof frames === 'object') {
+      try {
+        const steps = Object.keys(frames).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const v = new Velvet(null);
+        const parts = [];
+        for (const k of steps) {
+          const css = v.objectToCSS(frames[k]);
+          parts.push(`${k} { ${css} }`);
+        }
+        body = parts.join(' ');
+      } catch {}
+    }
+    const rule = `@keyframes ${n}{${body}}`;
+    _enqueueCSS(rule);
+    V_GLOBAL.keyframes.add(n);
+    return n;
+  }
+  
   // SSR/CSP helpers
   static setNonce(nonce) {
     V_GLOBAL.nonce = nonce != null ? String(nonce) : null;
@@ -536,15 +595,22 @@ let globalVelvet = null;
 export function initVelvet(config = {}) {
   if (!globalVelvet) {
     globalVelvet = new Velvet(null);
-    
+    // Apply CSS variables from theme once (no-op on server)
+    try {
+      if (!V_GLOBAL.varsApplied) {
+        injectThemeVariables();
+        V_GLOBAL.varsApplied = true;
+      }
+    } catch {}
     // Apply global configuration
-    if (config.darkMode === 'auto') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-      
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-      });
+    if (typeof window !== 'undefined' && config.darkMode === 'auto') {
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      try { document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light'); } catch {}
+      try {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          try { document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light'); } catch {}
+        });
+      } catch {}
     }
   }
   return globalVelvet;
