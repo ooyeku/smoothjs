@@ -124,7 +124,76 @@ export class Velvet {
   
   getBaseStyles() {
     return `
+      /* Base reset */
       *, *::before, *::after { box-sizing: border-box; }
+      html, body { height: auto; min-height: 100%; }
+
+      /* Semantic theme variables: light default */
+      :root, :root[data-theme="light"] {
+        --surface: #f5f7fb;
+        --surface-2: #ffffff;
+        --surface-3: #ffffff;
+        --text: #1f2937;
+        --text-muted: #6b7280;
+        --text-inverse: #0b1220;
+        --border: #e5e7eb;
+        --focus-ring: #60a5fa;
+        --accent: #0ea5e9;
+        --accent-contrast: #ffffff;
+        --success: #10b981;
+        --success-contrast: #052e16;
+        --warning: #f59e0b;
+        --warning-contrast: #451a03;
+        --danger: #ef4444;
+        --danger-contrast: #7f1d1d;
+        --overlay: rgba(0,0,0,0.30);
+        --backdrop: rgba(0,0,0,0.20);
+        color-scheme: light;
+      }
+
+      /* Dark theme overrides */
+      :root[data-theme="dark"], [data-theme="dark"] {
+        --surface: #0b1220;
+        --surface-2: #0f1a2b;
+        --surface-3: #16243a;
+        --text: #ffffff;
+        --text-muted: #d1d5db;
+        --text-inverse: #0b1220;
+        --border: #3b4b63;
+        --focus-ring: #60a5fa;
+        --accent: #8dd9ff;
+        --accent-contrast: #0b1220;
+        --success: #10b981;
+        --success-contrast: #052e16;
+        --warning: #f59e0b;
+        --warning-contrast: #451a03;
+        --danger: #ef4444;
+        --danger-contrast: #7f1d1d;
+        --overlay: rgba(0,0,0,0.60);
+        --backdrop: rgba(0,0,0,0.40);
+        color-scheme: dark;
+      }
+
+      /* Base theme layer: background and text */
+      html, body { background: var(--surface); color: var(--text); }
+      :where(div, section, article, header, main, footer, aside, nav) { background-color: transparent; color: inherit; }
+
+      /* Form controls normalization */
+      :where(button, input, textarea, select) {
+        background: var(--surface-2);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      :where(button) { cursor: pointer; }
+      :where(input, textarea)::placeholder { color: var(--text-muted); }
+      :where(input[type="checkbox"], input[type="radio"], progress) { accent-color: var(--accent); }
+      :where(:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+      /* Selection color */
+      ::selection { background: var(--accent); color: var(--accent-contrast); }
+
+      /* Scrollbars where supported */
+      body { scrollbar-color: var(--border) var(--surface); }
       
       @keyframes pulse {
         0%, 100% { opacity: 1; }
@@ -298,6 +367,18 @@ export class Velvet {
     const isDev = (() => {
       try { return !(typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production'); } catch { return true; }
     })();
+
+    // Mapping of common raw colors to semantic variables for critical props
+    const COLOR_TOKENS = new Map([
+      ['#ffffff', 'var(--surface-2)'],
+      ['#fff', 'var(--surface-2)'],
+      ['white', 'var(--surface-2)'],
+      ['#000000', 'var(--text)'],
+      ['#000', 'var(--text)'],
+      ['black', 'var(--text)'],
+      ['#e5e7eb', 'var(--border)']
+    ]);
+
     const parts = [];
     for (const key of keys) {
       let value = obj[key];
@@ -315,6 +396,19 @@ export class Velvet {
           value = 0; // strip units for zero
         } else if (!UNITLESS.has(key)) {
           value = `${value}px`;
+        }
+      }
+      // Route known literal colors to semantic variables for critical properties
+      const lowerVal = String(value).toLowerCase().trim();
+      const isBg = cssKey === 'background' || cssKey === 'background-color';
+      const isColor = cssKey === 'color';
+      const isBorderColor = cssKey === 'border-color';
+      if ((isBg || isColor || isBorderColor) && COLOR_TOKENS.has(lowerVal)) {
+        value = COLOR_TOKENS.get(lowerVal);
+      } else if (isDev && (isBg || isColor)) {
+        // Warn on raw literal black/white when not mapped, as it may look wrong in dark/light
+        if (lowerVal === 'white' || lowerVal === '#fff' || lowerVal === '#ffffff' || lowerVal === 'black' || lowerVal === '#000' || lowerVal === '#000000') {
+          try { console.warn(`[velvet] Literal ${lowerVal} used on ${cssKey}; consider using semantic variables to ensure theme safety.`); } catch {}
         }
       }
       parts.push(`${cssKey}: ${String(value)}`);

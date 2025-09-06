@@ -4,6 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SmoothJS Todo Example</title>
+  <script>
+    (function(){
+      try {
+        var LS_KEY='smoothjs:theme';
+        var doc=document.documentElement;
+        var saved=localStorage.getItem(LS_KEY);
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+        function apply(theme, emit){
+          var mode = theme === 'dark' ? 'dark' : (theme === 'light' ? 'light' : (prefersDark && prefersDark.matches ? 'dark' : 'light'));
+          doc.setAttribute('data-theme', mode);
+          try { doc.style.colorScheme = (mode === 'dark' ? 'dark' : 'light'); } catch(e){}
+          if (emit) { try { window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: theme, mode: mode } })); } catch(e){} }
+        }
+        window.SmoothTheme = window.SmoothTheme || {};
+        window.SmoothTheme.getTheme = function(){ return localStorage.getItem(LS_KEY) || 'auto'; };
+        window.SmoothTheme.setTheme = function(t){
+          if (t === 'auto') { try { localStorage.removeItem(LS_KEY); } catch(e){} apply('auto', true); bind(); return; }
+          try { localStorage.setItem(LS_KEY, t); } catch(e){}
+          apply(t, true); unbind();
+        };
+        window.SmoothTheme.onThemeChange = function(cb){ if (typeof cb==='function'){ window.addEventListener('themechange', cb); return function(){ window.removeEventListener('themechange', cb); }; } return function(){} };
+        function onSys(e){ if (!localStorage.getItem(LS_KEY)) apply('auto', true); }
+        function bind(){ try { if (prefersDark && prefersDark.addEventListener) prefersDark.addEventListener('change', onSys); } catch(e){} }
+        function unbind(){ try { if (prefersDark && prefersDark.removeEventListener) prefersDark.removeEventListener('change', onSys); } catch(e){} }
+        if (saved) { apply(saved, false); unbind(); } else { apply('auto', false); bind(); }
+      } catch(e){}
+    })();
+  </script>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; margin: 0; padding: 2rem; background:#f6f7fb; }
     .app { max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.25rem; box-shadow: 0 8px 18px rgba(0,0,0,.06); }

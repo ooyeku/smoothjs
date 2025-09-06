@@ -7,6 +7,34 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    (function(){
+      try {
+        var LS_KEY='smoothjs:theme';
+        var doc=document.documentElement;
+        var saved=localStorage.getItem(LS_KEY);
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+        function apply(theme, emit){
+          var mode = theme === 'dark' ? 'dark' : (theme === 'light' ? 'light' : (prefersDark && prefersDark.matches ? 'dark' : 'light'));
+          doc.setAttribute('data-theme', mode);
+          try { doc.style.colorScheme = (mode === 'dark' ? 'dark' : 'light'); } catch(e){}
+          if (emit) { try { window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: theme, mode: mode } })); } catch(e){} }
+        }
+        window.SmoothTheme = window.SmoothTheme || {};
+        window.SmoothTheme.getTheme = function(){ return localStorage.getItem(LS_KEY) || 'auto'; };
+        window.SmoothTheme.setTheme = function(t){
+          if (t === 'auto') { try { localStorage.removeItem(LS_KEY); } catch(e){} apply('auto', true); bind(); return; }
+          try { localStorage.setItem(LS_KEY, t); } catch(e){}
+          apply(t, true); unbind();
+        };
+        window.SmoothTheme.onThemeChange = function(cb){ if (typeof cb==='function'){ window.addEventListener('themechange', cb); return function(){ window.removeEventListener('themechange', cb); }; } return function(){} };
+        function onSys(e){ if (!localStorage.getItem(LS_KEY)) apply('auto', true); }
+        function bind(){ try { if (prefersDark && prefersDark.addEventListener) prefersDark.addEventListener('change', onSys); } catch(e){} }
+        function unbind(){ try { if (prefersDark && prefersDark.removeEventListener) prefersDark.removeEventListener('change', onSys); } catch(e){} }
+        if (saved) { apply(saved, false); unbind(); } else { apply('auto', false); bind(); }
+      } catch(e){}
+    })();
+  </script>
   <style>
     :root {
       --primary:#0ea5e9; /* brighter primary for both modes */
