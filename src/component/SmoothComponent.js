@@ -1,3 +1,4 @@
+import './theme.js';
 /**
  * A private WeakMap to serve as a registry for associating context-specific data with objects.
  * The `_contextRegistry` is used internally to maintain a mapping between objects and their corresponding
