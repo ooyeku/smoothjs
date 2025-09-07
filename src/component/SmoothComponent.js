@@ -1,4 +1,19 @@
+/**
+ * A WeakMap used for storing and managing private contextual data associated
+ * with objects. This registry ensures that the contextual data is not directly
+ * accessible from the outside and is automatically garbage collected when the
+ * associated object no longer exists.
+ *
+ * The `_contextRegistry` provides a secure mechanism for associating private
+ * state or metadata with objects, without creating strong references that
+ * could potentially lead to memory leaks.
+ */
 const _contextRegistry = new WeakMap(); // WeakMap<Element, Map<symbol, any>> for context values
+/**
+ * Determines whether errors should be logged based on the current environment and global variables.
+ *
+ * @return {boolean} Returns true if errors should be logged, otherwise false.
+ */
 function _shouldLogErrors() {
   try {
     const env = (typeof process !== 'undefined' && process && process.env) ? process.env : {};
@@ -11,6 +26,12 @@ function _shouldLogErrors() {
   return true;
 }
 
+/**
+ * Represents a base class for components with state and property management,
+ * rendering logic, and event delegation. This class includes lifecycle hooks,
+ * state and property update methods, and rendering functionality, allowing
+ * child classes to define custom behavior and templates.
+ */
 export class SmoothComponent {
   static _dirty = new Set();
   static _scheduled = false;

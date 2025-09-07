@@ -3,6 +3,21 @@ import { VelvetUtilities } from './utilities.js';
 import { defaultTheme } from './theme.js';
 
 // Global cache and buffer for Velvet across all instances
+/**
+ * A globally shared object used for storing and managing application-wide CSS-related state.
+ *
+ * This object is designed to ensure that the same instance is used across the application,
+ * leveraging the global scope (either `window` or `globalThis`). It provides mechanisms
+ * for caching CSS classes, buffering changes, scheduling updates, and manipulating the
+ * associated style sheet.
+ *
+ * Properties:
+ * - `cache` (Map): A map to store CSS class names and their associated styles.
+ * - `buf` (Array): An array used to buffer pending changes or operations.
+ * - `scheduled` (boolean): A flag indicating whether updates have been scheduled.
+ * - `styleEl` (HTMLElement|null): A reference to the `<style>` element used for injecting CSS.
+ * - `sheet` (CSSStyleSheet|null): A reference to the CSS style sheet object.
+ */
 const V_GLOBAL = (() => {
   const g = (typeof window !== 'undefined' ? window : globalThis);
   g.__SMOOTH_VELVET__ = g.__SMOOTH_VELVET__ || {
@@ -15,6 +30,14 @@ const V_GLOBAL = (() => {
   return g.__SMOOTH_VELVET__;
 })();
 
+/**
+ * Flushes the CSS buffer (`V_GLOBAL.buf`) into the associated style element,
+ * minimizing DOM operations by appending the buffer content as a single chunk.
+ * If the style element does not exist, the function will attempt to retrieve it from the DOM.
+ * Clears the CSS buffer and resets the scheduled flag after flushing.
+ *
+ * @return {void} No return value.
+ */
 function _flushCSS() {
   if (!V_GLOBAL.buf.length) return;
   try {
@@ -28,6 +51,12 @@ function _flushCSS() {
   V_GLOBAL.scheduled = false;
 }
 
+/**
+ * Enqueues a CSS string to a buffer and schedules a flush operation if not already scheduled.
+ *
+ * @param {string} css - The CSS string to enqueue. If null or undefined, no action is taken.
+ * @return {void} This method does not return a value.
+ */
 function _enqueueCSS(css) {
   if (!css) return;
   V_GLOBAL.buf.push(css);
@@ -37,6 +66,11 @@ function _enqueueCSS(css) {
   }
 }
 
+/**
+ * The Velvet class provides a utility for dynamically generating CSS class names with styles,
+ * as well as a set of helper methods for creating UI design patterns such as flex, grid, and buttons.
+ * It manages a global stylesheet and caches styles to optimize performance.
+ */
 export class Velvet {
   constructor(component) {
     this.component = component;
@@ -404,8 +438,25 @@ export class Velvet {
 }
 
 // Singleton for global theme management
+/**
+ * A global variable intended to store the reference to the main velvet object or instance.
+ * This variable can be used across different modules or components to access or manipulate
+ * the shared velvet object. It is initialized to `null` by default.
+ *
+ * Note: Ensure that this variable is assigned properly before use to avoid
+ * potential runtime issues.
+ *
+ * @type {Object|null}
+ */
 let globalVelvet = null;
 
+/**
+ * Initializes the Velvet instance with optional configuration settings.
+ *
+ * @param {Object} config - Configuration object for initializing Velvet.
+ * @param {string} [config.darkMode='auto'] - Determines theme mode. 'auto' enables detection based on user system preferences.
+ * @return {Velvet} The initialized Velvet instance.
+ */
 export function initVelvet(config = {}) {
   if (!globalVelvet) {
     globalVelvet = new Velvet(null);
@@ -423,6 +474,13 @@ export function initVelvet(config = {}) {
   return globalVelvet;
 }
 
+/**
+ * Toggles the application's theme between dark mode and light mode by
+ * switching the value of the `data-theme` attribute on the root `<html>` element.
+ * If the current theme is `dark`, it sets the theme to `light`, and vice versa.
+ *
+ * @return {void} This function does not return a value.
+ */
 export function toggleDarkMode() {
   const current = document.documentElement.getAttribute('data-theme');
   document.documentElement.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');

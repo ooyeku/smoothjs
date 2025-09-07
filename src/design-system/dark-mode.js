@@ -1,3 +1,7 @@
+/**
+ * Handles management of dark mode settings, including detection of system preferences,
+ * applying themes, saving preferences, and notifying subscribers of mode changes.
+ */
 export class DarkModeManager {
   constructor() {
     this.mode = this.detectSystemPreference();
@@ -132,8 +136,26 @@ export class DarkModeManager {
 }
 
 // Singleton instance
+/**
+ * A variable to manage the dark mode functionality in an application.
+ * It is initially set to null and can be assigned an object or function
+ * responsible for controlling and handling the dark mode state and actions.
+ *
+ * Usage of this variable typically involves assigning a relevant implementation
+ * that encapsulates logic such as toggling between dark and light themes,
+ * persisting user preferences, and applying appropriate styles.
+ *
+ * It should be properly initialized before invoking any related operations
+ * to ensure proper functionality.
+ */
 let darkModeManager = null;
 
+/**
+ * Retrieves the singleton instance of the DarkModeManager.
+ * If the instance does not exist, a new instance is created.
+ *
+ * @return {DarkModeManager} The singleton instance of the DarkModeManager.
+ */
 export function getDarkModeManager() {
   if (!darkModeManager) {
     darkModeManager = new DarkModeManager();
@@ -142,18 +164,46 @@ export function getDarkModeManager() {
 }
 
 // Convenience functions
+/**
+ * Toggles the dark mode state between enabled and disabled.
+ *
+ * @return {boolean} The resulting state of dark mode after the toggle.
+ */
 export function toggleDarkMode() {
   return getDarkModeManager().toggle();
 }
 
+/**
+ * Sets the application's dark mode preference.
+ *
+ * @param {boolean} mode - A boolean value where `true` enables dark mode and `false` disables it.
+ * @return {void} This function does not return any value.
+ */
 export function setDarkMode(mode) {
   getDarkModeManager().setMode(mode);
 }
 
+/**
+ * Determines if the application is currently running in dark mode.
+ *
+ * This function checks the current mode of the application's settings and
+ * returns whether it is set to 'dark'.
+ *
+ * @return {boolean} True if the application is in dark mode, otherwise false.
+ */
 export function isDarkMode() {
   return getDarkModeManager().getMode() === 'dark';
 }
 
+/**
+ * Subscribes the provided listener function to dark mode changes.
+ * The listener will be triggered whenever the dark mode state changes.
+ *
+ * @param {function(boolean)} listener - A callback function that will be invoked with the updated
+ *                                        dark mode state. The state is passed as a boolean, where
+ *                                        `true` indicates dark mode is enabled and `false` indicates it is disabled.
+ * @return {function} A function that can be called to unsubscribe the listener from dark mode updates.
+ */
 export function subscribeToDarkMode(listener) {
   return getDarkModeManager().subscribe(listener);
 }

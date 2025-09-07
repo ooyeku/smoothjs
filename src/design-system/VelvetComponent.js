@@ -2,6 +2,11 @@ import { SmoothComponent } from '../component/SmoothComponent.js';
 import { Velvet } from './velvet.js';
 import { defaultTheme } from './theme.js';
 
+/**
+ * Represents a component with advanced styling, theming, and animation capabilities.
+ * Extends the `SmoothComponent` class to provide a streamlined interface for creating
+ * styled components, managing themes, and applying animations.
+ */
 export class VelvetComponent extends SmoothComponent {
   constructor(element, initialState, props) {
     super(element, initialState, props);

@@ -1,4 +1,6 @@
-// Centralized style registry for Velvet
+/**
+ * A utility class for managing and injecting CSS styles dynamically.
+ */
 export class StyleRegistry {
   static styles = new Map();
   static sheet = null;

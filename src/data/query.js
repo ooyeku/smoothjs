@@ -1,8 +1,18 @@
-// Minimal query/cache layer for SmoothJS
-// Features: request deduping, caching, subscribers, invalidate, refetch, staleTime
 
+
+/**
+ * Returns the current timestamp in milliseconds.
+ * The value is the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC.
+ *
+ * @function
+ * @returns {number} The current timestamp in milliseconds.
+ */
 const now = () => Date.now();
 
+/**
+ * QueryClientImpl is an in-memory query caching and management client.
+ * It provides methods for efficient data fetching, caching, and subscription updates.
+ */
 class QueryClientImpl {
   constructor() {
     this.store = new Map(); // key -> { data, error, updatedAt, subscribers:Set, inflight:Promise|null, fetcher:Function|null, staleTime:number, tags:Set<string>, cacheTime:number, gcTimer:any, refetchOnWindowFocus:boolean, refetchOnReconnect:boolean }
@@ -217,5 +227,16 @@ class QueryClientImpl {
   }
 }
 
+/**
+ * Represents an instance of the QueryClientImpl class.
+ * Query is utilized to interact with the implemented query service,
+ * enabling client-side execution of queries against the backend.
+ * It serves as the entry point for querying data provided by
+ * the respective service or module.
+ *
+ * This variable is typically instantiated based on the target
+ * service logic, acting as a client to communicate and fetch
+ * necessary query responses from the connected service.
+ */
 export const Query = new QueryClientImpl();
 export default Query;

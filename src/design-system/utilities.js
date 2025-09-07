@@ -1,5 +1,10 @@
 import { defaultTheme } from './theme.js';
 
+/**
+ * A utility class for generating a set of pre-defined style configurations based on a provided theme.
+ * This class contains utilities for CSS properties such as display, flexbox, alignment, spacing, width, height,
+ * and typography. The utilities can be directly applied as style objects.
+ */
 export class VelvetUtilities {
   constructor(theme = defaultTheme) {
     this.theme = theme;

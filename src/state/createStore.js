@@ -1,3 +1,19 @@
+/**
+ * Creates a state management store with reactive capabilities.
+ *
+ * @param {Object} [initialState={}] - The initial state of the store. Defaults to an empty object.
+ * @returns {Object} A store object with the following methods:
+ *
+ * - `getState`: Returns a shallow copy of the current store state.
+ * - `setState`: Merges an updated state into the store. Accepts either a partial state object
+ *   or a function that takes the current state and returns the updated state. Triggers notification to listeners if state changes.
+ * - `replaceState`: Replaces the store's current state with the provided state object, overriding the entire state.
+ *   Triggers notification to listeners.
+ * - `reset`: Resets the store's state to the initial state provided during creation. Triggers notification to listeners.
+ * - `subscribe`: Registers a listener function that gets called whenever the state changes. Returns an unsubscribe function to remove the listener.
+ * - `select`: Creates a derived state management mechanism. Takes a selector function and an optional callback
+ *   to be notified of derived state changes. Optionally accepts a comparison function (e.g. Object.is, shallow equality).
+ */
 export const createStore = (initialState = {}) => {
   let state = { ...initialState };
   const listeners = new Set();
@@ -82,6 +98,20 @@ export const createStore = (initialState = {}) => {
   return api;
 };
 
+/**
+ * Creates a memoized selector function.
+ *
+ * This function is used to efficiently compute derived data based on input selectors and a result function.
+ * It ensures that the computation is only performed when the input selectors' outputs have changed, allowing for performance optimization in applications such as state management.
+ *
+ * @param {...Function} funcs - A series of input selector functions followed by a result function.
+ *                              The input selectors take in the application state and optional arguments
+ *                              and compute intermediate values. The result function takes the outputs
+ *                              of the input selectors to compute the final memoized result.
+ * @returns {Function} A memoized selector function. This function takes the application state and
+ *                     any additional arguments, computes the input selectors' outputs, and runs the
+ *                     result function only when the inputs have changed (using `Object.is` comparison).
+ */
 export const createSelector = (...funcs) => {
   const resultFunc = funcs.pop();
   const inputSelectors = funcs;

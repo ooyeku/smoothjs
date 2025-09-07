@@ -1,7 +1,14 @@
 import { SmoothComponent } from '../component/SmoothComponent.js';
 import { Query } from '../data/query.js';
 
-// Shallow compare dependency arrays
+/**
+ * Determines whether two dependency arrays have changed.
+ * Two arrays are considered different if they have different lengths or if any of their elements are not strictly equal.
+ *
+ * @param {Array} a The first dependency array.
+ * @param {Array} b The second dependency array.
+ * @return {boolean} Returns true if the arrays are different, otherwise false.
+ */
 function depsChanged(a, b) {
   if (!a && !b) return false;
   if (!a || !b) return true;
@@ -12,6 +19,19 @@ function depsChanged(a, b) {
   return false;
 }
 
+/**
+ * Defines a functional component with a setup function.
+ * The setup function is executed to configure state, hooks, and provide the render logic.
+ *
+ * @param {Function} setup - A function that initializes component logic. It receives a context object
+ * containing utilities such as hooks (e.g., `useState`, `useMemo`, etc.) and component-related data.
+ * The setup function should return an object containing implementation of the component's lifecycle methods
+ * and rendering logic.
+ *
+ * @return {Function} The defined component class derived from `SmoothComponent`, which provides lifecycle
+ * handling and enables functional-style component definition.
+ * Throws an error if the argument is not a function.
+ */
 export function defineComponent(setup) {
   if (typeof setup !== 'function') throw new Error('defineComponent expects a function');
 

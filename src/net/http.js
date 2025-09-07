@@ -1,3 +1,8 @@
+/**
+ * Represents an HTTP error that occurs during a request.
+ * Extends the built-in JavaScript `Error` object to include additional details
+ * about the HTTP response that caused the error.
+ */
 class HTTPError extends Error {
   constructor(message, { status, statusText, url, body }) {
     super(message);
@@ -9,6 +14,15 @@ class HTTPError extends Error {
   }
 }
 
+/**
+ * Constructs a full URL by combining a base URL with a relative or absolute URL.
+ * If the provided URL is already absolute (starts with "http" or "https"), it will be returned as is.
+ * Handles cases where slashes at the boundaries of the base URL and the input URL may overlap.
+ *
+ * @param {string} url - The input URL, which may be absolute or relative.
+ * @param {string} [baseURL=''] - The base URL to combine with the input URL. Defaults to an empty string.
+ * @returns {string} - The constructed full URL.
+ */
 const buildUrl = (url, baseURL = '') => {
   if (!baseURL) return url;
   if (/^https?:\/\//i.test(url)) return url;
@@ -17,6 +31,24 @@ const buildUrl = (url, baseURL = '') => {
   return baseURL + url;
 };
 
+/**
+ * Creates an HTTP client instance for making requests with customizable settings.
+ *
+ * @param {object} [config={}] - Optional configuration for the client.
+ * @param {string} [config.baseURL=''] - The base URL to prefix all request URLs.
+ * @param {object} [config.headers={}] - Default headers to include in all requests.
+ * @param {number} [config.timeout=0] - Default timeout in milliseconds for all requests.
+ * @returns {object} A client instance with methods for making HTTP requests, including:
+ *                   `get`, `post`, `put`, `delete`, `raw`, `request`, and `withBase`.
+ *
+ * @property {function} get - Performs a GET request to the specified URL.
+ * @property {function} post - Performs a POST request to the specified URL with optional body data.
+ * @property {function} put - Performs a PUT request to the specified URL with optional body data.
+ * @property {function} delete - Performs a DELETE request to the specified URL.
+ * @property {function} raw - Performs a request without error checking, returning the raw response.
+ * @property {function} request - A general-purpose method for making HTTP requests, supporting custom options and error handling.
+ * @property {function} withBase - Creates a new client instance with a specific base URL and optional default settings.
+ */
 const createClient = ({ baseURL = '', headers: defaultHeaders = {}, timeout: defaultTimeout = 0 } = {}) => {
   return {
     async get(url, options = {}) {
@@ -107,5 +139,16 @@ const createClient = ({ baseURL = '', headers: defaultHeaders = {}, timeout: def
   };
 };
 
+/**
+ * The `http` variable represents an HTTP client instance created using the `createClient` function.
+ * It is used to initiate and manage HTTP requests and responses.
+ *
+ * The object provides methods and properties for making HTTP calls, handling request configurations,
+ * and processing server responses. It acts as an interface for communication between
+ * a client application and a remote server over the HTTP protocol.
+ *
+ * Common use cases include sending GET, POST, PUT, DELETE, and other HTTP requests
+ * as part of client-server interactions.
+ */
 export const http = createClient();
 export { HTTPError };

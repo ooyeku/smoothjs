@@ -1,4 +1,9 @@
-// Simple hash function for generating unique class names
+/**
+ * Generates a hash string for a given input.
+ *
+ * @param {string} str - The input string to hash.
+ * @return {string} The computed hash value as a base-36 string.
+ */
 export function hash(str) {
   let hash = 0;
   if (str.length === 0) return hash;

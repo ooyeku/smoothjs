@@ -1,3 +1,9 @@
+/**
+ * SmoothRouter class provides client-side routing functionality for single-page applications (SPAs).
+ * It enables navigation between different parts of the application without reloading the page
+ * and allows dynamic registration of routes, route matching, lazy-loading of components,
+ * and custom navigation guards.
+ */
 export class SmoothRouter {
   constructor(options = {}) {
     this._routeTree = []; // array of top-level route nodes

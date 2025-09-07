@@ -1,3 +1,6 @@
+/**
+ * A utility object providing various commonly-used functions for browser and server environments.
+ */
 export const utils = {
   isBrowser: (typeof window !== 'undefined') && (typeof document !== 'undefined'),
 

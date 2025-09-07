@@ -1,3 +1,11 @@
+/**
+ * Generates a color scale based on a given base color.
+ * The scale includes shades and tints, ranging from lighter to darker variations of the base color.
+ *
+ * @param {string} baseColor - The base color in any valid CSS color format (e.g., HEX, RGB, HSL).
+ * @return {object} An object representing the color scale with keys corresponding to shade levels
+ *                  (e.g., 50, 100, 200, ... 950) and values as color strings.
+ */
 export function generateColorScale(baseColor) {
   // Simple color scale generation - in production, use a proper color library
   const scales = {
@@ -16,16 +24,38 @@ export function generateColorScale(baseColor) {
   return scales;
 }
 
+/**
+ * Adjusts the brightness of a given color by a specified amount to make it lighter.
+ *
+ * @param {string} color - The color to be lightened, represented as a string (e.g., HEX, RGB).
+ * @param {number} amount - The amount by which to lighten the color. Positive values make it lighter.
+ * @return {string} The adjusted color after lightening, represented as a string.
+ */
 function lighten(color, amount) {
   // Simple lighten implementation
   return adjustColor(color, amount, true);
 }
 
+/**
+ * Adjusts the brightness of a given color by darkening it by a specified amount.
+ *
+ * @param {string} color - The color to be darkened, represented as a valid CSS color string.
+ * @param {number} amount - The amount by which to darken the color. Positive values will darken the color.
+ * @return {string} A new color string representing the darkened color.
+ */
 function darken(color, amount) {
   // Simple darken implementation
   return adjustColor(color, amount, false);
 }
 
+/**
+ * Adjusts the color by either lightening or darkening it based on the provided parameters.
+ *
+ * @param {string} color - The original color in hexadecimal format (e.g., "#FFFFFF").
+ * @param {number} amount - The adjustment factor between 0 and 1. A higher value results in a more significant adjustment.
+ * @param {boolean} lighten - If true, the color will be lightened; if false, it will be darkened.
+ * @return {string} The adjusted color in hexadecimal format.
+ */
 function adjustColor(color, amount, lighten) {
   const num = parseInt(color.replace('#', ''), 16);
   const r = (num >> 16) & 255;
@@ -43,6 +73,21 @@ function adjustColor(color, amount, lighten) {
   return `#${((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1)}`;
 }
 
+/**
+ * Represents a default theme configuration for a design system.
+ *
+ * The `defaultTheme` object contains various settings and properties such as colors, typography, spacing, and
+ * other design-related variables to ensure consistent styling throughout an application.
+ *
+ * Properties:
+ * - `colors`: Defines a palette of color schemes categorized by purpose, including primary, success,
+ *   warning, danger, info, neutral, as well as special effects and gradient styles.
+ * - `typography`: Configures font styles and text-related properties, including font families, font sizes,
+ *   font weights, line heights, and letter spacing.
+ * - `spacing`: Defines spacing values to be used throughout the application, adhering to a standardized
+ *   scale.
+ * - `borderRadius`: Provides predefined values for corner radius to create rounded elements.
+ */
 export const defaultTheme = {
   colors: {
     primary: {
@@ -341,6 +386,15 @@ export const defaultTheme = {
   }
 };
 
+/**
+ * Merges a base theme and a custom theme into a single theme object.
+ * For nested objects, the method performs a shallow merge where properties
+ * in the custom theme override those in the base theme.
+ *
+ * @param {Object} baseTheme - The base theme object to be merged.
+ * @param {Object} customTheme - The custom theme object that overrides or extends the base theme.
+ * @return {Object} A new theme object resulting from the merge of the base theme and custom theme.
+ */
 export function mergeThemes(baseTheme, customTheme) {
   const merged = { ...baseTheme };
   

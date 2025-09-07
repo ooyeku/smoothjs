@@ -1,6 +1,19 @@
 import { defaultTheme } from './theme.js';
 
 // Generate a flat record of CSS variables from the theme
+/**
+ * Generates a collection of CSS custom properties (variables) based on the provided theme object.
+ * Extracts and maps theme properties such as colors, spacing, typography sizes, and border radius into CSS variable definitions.
+ *
+ * @param {object} [theme=defaultTheme] - The theme object containing design tokens like colors, spacing, typography, and borderRadius.
+ * @param {object} [theme.colors] - An object defining color tokens, optionally supporting nested shade objects.
+ * @param {object} [theme.spacing] - An object defining spacing tokens.
+ * @param {object} [theme.typography] - An object containing typography-related information.
+ * @param {object} [theme.typography.sizes] - An object defining font size tokens.
+ * @param {object} [theme.borderRadius] - An object defining border radius tokens.
+ *
+ * @return {object} A key-value map of CSS variable names (keys) and their corresponding values from the theme.
+ */
 export function generateCSSVariables(theme = defaultTheme) {
   const vars = {};
 
@@ -44,6 +57,12 @@ export function generateCSSVariables(theme = defaultTheme) {
 }
 
 // Inject variables at :root
+/**
+ * Injects CSS variables corresponding to the provided theme into the document's root element.
+ *
+ * @param {Object} theme - The theme object containing key-value pairs of CSS variable names and their corresponding values. Defaults to `defaultTheme` if not provided.
+ * @return {void} This function does not return a value.
+ */
 export function injectThemeVariables(theme = defaultTheme) {
   if (typeof document === 'undefined') return;
   const vars = generateCSSVariables(theme);

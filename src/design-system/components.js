@@ -1,7 +1,14 @@
 import { VelvetComponent } from './VelvetComponent.js';
 import { focusTrap } from '../a11y/index.js';
 
-// Button Component
+
+/**
+ * Represents a button component with versatile styling and functionality options.
+ * Designed to support various use cases like links, traditional buttons,
+ * and buttons with additional features like loading indicators and icons.
+ *
+ * @extends VelvetComponent
+ */
 export class VButton extends VelvetComponent {
   static defaultProps = {
     variant: 'primary', // primary, secondary, ghost, danger
@@ -166,6 +173,12 @@ export class VButton extends VelvetComponent {
 }
 
 // Card Component
+/**
+ * A VCard is a re-usable component that represents a card element with customizable styles,
+ * interactivity, and spacing. It extends the functionality of the VelvetComponent base class.
+ *
+ * The `VCard` provides options for elevation, interactivity, padding, and click handling.
+ */
 export class VCard extends VelvetComponent {
   static defaultProps = {
     elevated: false,
@@ -226,6 +239,10 @@ export class VCard extends VelvetComponent {
 }
 
 // Input Component
+/**
+ * Represents a customizable input component that provides features such as validation, icons, and accessibility support.
+ * Extends from VelvetComponent to integrate seamlessly with the wider application framework.
+ */
 export class VInput extends VelvetComponent {
   static defaultProps = {
     type: 'text',
@@ -605,6 +622,26 @@ export class VInput extends VelvetComponent {
 }
 
 // Container Component
+/**
+ * VContainer is a layout component designed to structure and manage responsive content
+ * area for applications. It provides adjustable configurations for width, alignment,
+ * and padding to ensure a consistent container section.
+ *
+ * @extends VelvetComponent
+ *
+ * @property {object} defaultProps - Default property values of this component.
+ * @property {string} defaultProps.maxWidth - Defines the maximum width of the container.
+ * Possible values are 'sm', 'md', 'lg', 'xl', '2xl', and 'full'. Defaults to 'lg'.
+ * @property {boolean} defaultProps.centered - Determines whether the container is horizontally centered. Defaults to `true`.
+ * @property {boolean} defaultProps.padding - Specifies whether the container includes padding. Defaults to `true`.
+ *
+ * @constructor
+ * @param {HTMLElement} element - The DOM element bound to this component.
+ * @param {object} initialState - Initial state of the component.
+ * @param {object} props - Properties to configure the container.
+ *
+ * @method template - Generates the HTML structure and applies the styles based on the component's properties.
+ */
 export class VContainer extends VelvetComponent {
   static defaultProps = {
     maxWidth: 'lg', // sm, md, lg, xl, 2xl, full
@@ -650,6 +687,12 @@ export class VContainer extends VelvetComponent {
 }
 
 // Toast Component
+/**
+ * A class representing a toast message component for displaying brief, temporary notifications.
+ *
+ * Extends the `VelvetComponent` class and provides configurable options for displaying various
+ * types of toasts such as `success`, `warning`, `error`, and `info` with custom messages and durations.
+ */
 export class VToast extends VelvetComponent {
   static defaultProps = {
     type: 'info', // success, warning, error, info
@@ -741,6 +784,43 @@ export class VToast extends VelvetComponent {
 }
 
 // Modal Component
+/**
+ * VModal class provides functionality to create and manage modal dialogs.
+ * It extends the VelvetComponent and allows for customization with default properties
+ * and user-defined props.
+ *
+ * The modal includes the ability to:
+ * - Open and close the UI dialog box.
+ * - Handle overlay and close button interactions.
+ * - Manage focus trapping for accessibility when the modal is open.
+ *
+ * Features:
+ * - Configurable via defaultProps (e.g., open, title, onClose, closeOnOverlay, maxWidth).
+ * - Handles overlay click to close the modal if `closeOnOverlay` is enabled.
+ * - Implements a responsive modal width based on defined size categories.
+ * - Includes accessibility features such as a focus trap and role attributes.
+ *
+ * Default Props:
+ * - `open`: Boolean indicating whether the modal is open (default: false).
+ * - `title`: The title of the modal (default: an empty string).
+ * - `onClose`: Callback to be triggered when the modal is closed (default: null).
+ * - `closeOnOverlay`: Boolean indicating whether clicking on the overlay closes the modal (default: true).
+ * - `maxWidth`: Controls the maximum width of the modal, e.g., 'sm', 'md', 'lg', 'xl', 'full' (default: 'md').
+ *
+ * Lifecycle Methods:
+ * - `onCreate()`: Sets up event listeners for overlay and close button interactions.
+ * - `onStateChange(prev, next)`: Manages focus trapping and modal state changes.
+ * - `onUnmount()`: Cleans up resources and removes focus trapping when the component unmounts.
+ * - `onPropsChange(prev, next)`: Reacts to changes in props, especially the `open` prop.
+ *
+ * Methods:
+ * - `close()`: Invokes the `onClose` callback to handle modal closure.
+ * - `template()`: Renders the modal structure and styling. Includes configurable header, body, and overlay.
+ *
+ * Styling:
+ * The modal uses predefined style configurations for the overlay, title, header, body, and close button.
+ * Supports light and dark modes with respective styles.
+ */
 export class VModal extends VelvetComponent {
   static defaultProps = {
     open: false,
@@ -910,6 +990,11 @@ export class VModal extends VelvetComponent {
 }
 
 // Grid Component
+/**
+ * Represents a vertical grid layout component.
+ * The VGrid class is used to define a flexible and responsive grid-based layout system.
+ * It extends the functionality of the VelvetComponent base class.
+ */
 export class VGrid extends VelvetComponent {
   static defaultProps = {
     cols: 1,
@@ -949,6 +1034,26 @@ export class VGrid extends VelvetComponent {
 }
 
 // Export all components
+/**
+ * The `VelvetUI` object serves as a centralized collection of reusable
+ * UI components and utilities for building user interfaces.
+ *
+ * Each property in this object corresponds to a specific UI
+ * component or functionality which can be utilized in applications.
+ *
+ * Properties:
+ * - `Button`: Represents a customizable button component.
+ * - `Card`: Represents a card layout component for displaying grouped content.
+ * - `Input`: Represents an input field for user data entry.
+ * - `Container`: Represents a layout container for organizing content.
+ * - `Toast`: Represents a toast notification system for transient messages or alerts.
+ * - `Modal`: Represents a modal dialog component for focused user interactions.
+ * - `Grid`: Represents a grid system for responsive layouts.
+ * - `Tabs`: Getter for the tabs component, used for tabbed navigation.
+ *
+ * This object provides a modular and organized approach to incorporate
+ * complex UI design patterns and enhance development efficiency.
+ */
 export const VelvetUI = {
   Button: VButton,
   Card: VCard,
@@ -961,6 +1066,19 @@ export const VelvetUI = {
 };
 
 // Tabs Component (accessible)
+/**
+ * Represents a vertical tab component that provides tabbed navigation with features
+ * such as keyboard navigation, focus management, and customizable styles.
+ *
+ * This component is designed to allow switching between multiple tabs and their associated panels.
+ * It supports interaction through mouse clicks or keyboard navigation, providing accessibility out of the box.
+ *
+ * Features include:
+ * - A list of tabs with associated content panels.
+ * - Ability to navigate using arrow keys, Home, End, Enter, or Space keys.
+ * - When the selected tab is changed, the associated content is displayed, and callback hooks can be triggered.
+ * - Fully customizable styles for tabs and panels.
+ */
 export class VTabs extends VelvetComponent {
   static defaultProps = {
     tabs: [], // [{ id, label, content }]

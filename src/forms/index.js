@@ -1,6 +1,11 @@
-// Simple form helpers for SmoothJS
-// createForm: manages values, errors, touched, dirty; returns handlers for change/blur/submit
 
+/**
+ * Executes a set of validator functions against supplied values and collects errors.
+ *
+ * @param {Object} values - An object containing the values to be validated, typically keyed by field names.
+ * @param {Object} [validators={}] - An object containing validator functions, where each key corresponds to a field and each value is a function.
+ * @return {Object} - An object containing collected error messages for each field, keyed by the field name.
+ */
 function runValidators(values, validators = {}) {
   const errors = {};
   for (const [field, validator] of Object.entries(validators || {})) {
@@ -14,6 +19,13 @@ function runValidators(values, validators = {}) {
   return errors;
 }
 
+/**
+ * Creates a form object with initialized state, validation mechanisms, and handlers for form operations.
+ *
+ * @param {Object} [initialValues={}] - An object defining initial values for the form fields.
+ * @param {Object} [validators={}] - An object mapping field names to validation functions or rules.
+ * @return {Object} The created form object with state, handlers, and utility methods to manage and validate form data.
+ */
 export function createForm(initialValues = {}, validators = {}) {
   const state = {
     initial: { ...(initialValues || {}) },

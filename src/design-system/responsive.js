@@ -1,3 +1,14 @@
+/**
+ * An object representing the breakpoints used for responsive design.
+ * Each property corresponds to a breakpoint name and its associated minimum width in pixels.
+ *
+ * Properties:
+ * - `sm`: Represents the "small" breakpoint, with a minimum width of 640 pixels.
+ * - `md`: Represents the "medium" breakpoint, with a minimum width of 768 pixels.
+ * - `lg`: Represents the "large" breakpoint, with a minimum width of 1024 pixels.
+ * - `xl`: Represents the "extra-large" breakpoint, with a minimum width of 1280 pixels.
+ * - `2xl`: Represents the "2x extra-large" breakpoint, with a minimum width of 1536 pixels.
+ */
 export const breakpoints = {
   sm: 640,
   md: 768,
@@ -6,6 +17,9 @@ export const breakpoints = {
   '2xl': 1536
 };
 
+/**
+ * A class for managing responsive behaviors based on screen size, orientation, and specific media queries.
+ */
 export class ResponsiveManager {
   constructor() {
     this.currentBreakpoint = this.getBreakpoint();
@@ -133,8 +147,21 @@ export class ResponsiveManager {
 }
 
 // Singleton instance
+/**
+ * Represents a manager responsible for handling responsiveness in an application.
+ * This variable is initialized as null and is intended to be assigned
+ * as the application manages or adapts to responsiveness requirements.
+ *
+ * @type {object | null}
+ */
 let responsiveManager = null;
 
+/**
+ * Retrieves the singleton instance of the ResponsiveManager.
+ * If the instance does not exist, it initializes and returns the newly created instance.
+ *
+ * @return {ResponsiveManager} The singleton instance of the ResponsiveManager.
+ */
 export function getResponsiveManager() {
   if (!responsiveManager) {
     responsiveManager = new ResponsiveManager();
@@ -143,31 +170,75 @@ export function getResponsiveManager() {
 }
 
 // Convenience functions
+/**
+ * Retrieves the current responsive breakpoint being used by the application.
+ *
+ * @return {string} The name of the current breakpoint as defined by the responsive manager.
+ */
 export function getCurrentBreakpoint() {
   return getResponsiveManager().currentBreakpoint;
 }
 
+/**
+ * Checks if the provided breakpoint matches the current responsive state.
+ *
+ * @param {string} breakpoint - The name of the breakpoint to check.
+ * @return {boolean} Returns true if the current responsive state matches the specified breakpoint, otherwise false.
+ */
 export function isBreakpoint(breakpoint) {
   return getResponsiveManager().isBreakpoint(breakpoint);
 }
 
+/**
+ * Determines if the current device or viewport is classified as a mobile device.
+ *
+ * This method checks the responsive manager to evaluate whether the current
+ * device or screen size meets the criteria for being considered mobile.
+ *
+ * @return {boolean} Returns true if the device or viewport is classified as mobile, otherwise false.
+ */
 export function isMobile() {
   return getResponsiveManager().isMobile();
 }
 
+/**
+ * Determines if the current device is a tablet based on the responsive manager's state.
+ *
+ * @return {boolean} Returns true if the device is identified as a tablet, otherwise false.
+ */
 export function isTablet() {
   return getResponsiveManager().isTablet();
 }
 
+/**
+ * Determines if the current device or view is classified as a desktop.
+ *
+ * This function utilizes the responsive manager to evaluate and determine
+ * whether the device or view meets the criteria for desktop categorization.
+ *
+ * @return {boolean} True if the current view is identified as a desktop, false otherwise.
+ */
 export function isDesktop() {
   return getResponsiveManager().isDesktop();
 }
 
+/**
+ * Subscribes a listener to breakpoint changes using the responsive manager.
+ *
+ * @param {Function} listener - A callback function that will be executed whenever the breakpoint changes. The function receives the new breakpoint as an argument.
+ * @return {Function} A function to unsubscribe the listener from breakpoint changes.
+ */
 export function subscribeToBreakpoint(listener) {
   return getResponsiveManager().subscribe(listener);
 }
 
 // Responsive utility for conditional rendering
+/**
+ * Determines the appropriate value based on the current breakpoint and a set of responsive values.
+ *
+ * @param {Object} values - An object containing values mapped to breakpoints. The keys represent breakpoints ('xs', 'sm', 'md', 'lg', 'xl', '2xl') or 'default' as a fallback. The values are the corresponding values for each breakpoint.
+ * @return {*} The most specific value corresponding to the current breakpoint or the 'default' value if no match is found. Returns null if no default value is specified.
+ */
 export function responsive(values) {
   const breakpoint = getCurrentBreakpoint();
   const breakpointOrder = ['xs', 'sm', 'md', 'lg', 'xl', '2xl'];

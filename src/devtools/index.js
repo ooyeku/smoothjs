@@ -1,10 +1,14 @@
-// Minimal DevTools and diagnostics for SmoothJS
-// Features:
-// - Runtime error overlay listenable via CustomEvent 'smooth:error'
-// - enableOverlay/disableOverlay to toggle overlay
-// - time(label, fn) helper to measure execution duration
-// - setDebug to toggle verbose console warnings
 
+
+/**
+ * Represents the state configuration for a UI component.
+ * This state holds information about various flags and elements required for operation.
+ *
+ * @property {boolean} overlayEnabled - Determines whether the overlay feature is active.
+ * @property {HTMLElement|null} overlayEl - Reference to the overlay HTML element. It is null when no element is set.
+ * @property {boolean} debug - Indicates if debug mode is enabled for the component.
+ * @property {boolean} bound - Specifies whether the state has already been bound to an event or component.
+ */
 const state = {
   overlayEnabled: false,
   overlayEl: null,
@@ -12,6 +16,13 @@ const state = {
   bound: false
 };
 
+/**
+ * Ensures that an overlay DOM element is created and appended to the document body.
+ * If the overlay element already exists and is properly attached, it is returned.
+ * Otherwise, a new overlay element is created, styled, and appended to the document body.
+ *
+ * @return {HTMLDivElement|null} The overlay element if the document context exists, otherwise null.
+ */
 function _ensureOverlay() {
   if (typeof document === 'undefined') return null;
   if (state.overlayEl && state.overlayEl.parentNode) return state.overlayEl;
@@ -44,6 +55,12 @@ function _ensureOverlay() {
   return el;
 }
 
+/**
+ * Binds an event listener for the 'smooth:error' event to display error messages in an overlay if enabled.
+ * The method ensures that the binding occurs only once and only in environments with a `window` object available.
+ *
+ * @return {void} This function does not return a value.
+ */
 function _bind() {
   if (state.bound || typeof window === 'undefined') return;
   try {
@@ -59,6 +76,17 @@ function _bind() {
   } catch {}
 }
 
+/**
+ * A collection of tools for debugging and enhancing development workflows.
+ * The `DevTools` object provides methods to enable or disable an overlay for debugging,
+ * toggle debug state, and profile the execution time of functions.
+ *
+ * @namespace DevTools
+ * @property {Function} enableOverlay - Enables the overlay for debugging purposes. Initializes and binds the necessary elements.
+ * @property {Function} disableOverlay - Disables the debugging overlay by hiding the overlay element.
+ * @property {Function} setDebug - Toggles the debug state.
+ * @property {Function} time - Profiles the execution time of a given function and logs the result to the console. Accepts an optional label for the log.
+ */
 export const DevTools = {
   enableOverlay() {
     state.overlayEnabled = true;
