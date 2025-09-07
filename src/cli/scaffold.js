@@ -71,6 +71,8 @@ export class ProjectScaffold {
         await this.createExampleComponents();
       } else {
         this._log('Skipping example components (--skip-examples)');
+        // Ensure a minimal router exists so imports in app.js don't fail
+        await this._ensureMinimalRoutes();
       }
 
       // Initialize git if requested
@@ -997,6 +999,33 @@ export function ${name}() {
 export function ${name}Helper() {
   return '${name} helper function';
 }`;
+  }
+
+  // Create a minimal routes.js when skipping examples
+  async _ensureMinimalRoutes() {
+    const routesPath = path.join(this.projectDir, 'router/routes.js');
+    try {
+      if (fsSync.existsSync(routesPath) && !this.options.force) {
+        this._log('Exists, skipping: router/routes.js');
+        return;
+      }
+      await fs.mkdir(path.dirname(routesPath), { recursive: true });
+      await fs.writeFile(routesPath, this.getMinimalRoutesTemplate(), 'utf8');
+      this._log('Created: router/routes.js');
+    } catch (error) {
+      throw new Error(`Failed to create router/routes.js: ${error.message}`);
+    }
+  }
+
+  getMinimalRoutesTemplate() {
+    return `import { Router } from 'smoothjs';
+
+// Minimal router with no predefined routes. You can edit router/routes.js later
+// to add routes and pages. This file is created when scaffolding with --skip-examples.
+export const router = new Router({
+  mode: 'hash',
+  root: '#app'
+});`;
   }
 }
 
