@@ -13,7 +13,7 @@ const path = require('path');
 const cp = require('child_process');
 
 function printHelp() {
-  console.log(`SmoothJS CLI\n\nUsage:\n  smoothjs help\n  smoothjs create <project-name>\n  smoothjs serve [dir] [--port <port>]\n\nExamples:\n  smoothjs create my-app\n  smoothjs serve --port 5173\n  smoothjs serve examples --port 5173\n`);
+  console.log(`SmoothJS CLI\n\nUsage:\n  smoothjs help\n  smoothjs create <project-name> [--install auto|npm|pnpm|yarn|bun|never] [--git yes|no] [--pm auto|npm|pnpm|yarn|bun] [--skip-examples] [--force] [--silent|--yes]\n  smoothjs serve [dir] [--port <port>]\n\nExamples:\n  smoothjs create my-app\n  smoothjs create my-app --install auto --git yes\n  smoothjs create my-app --skip-examples --pm pnpm\n  smoothjs serve --port 5173\n  smoothjs serve examples --port 5173\n`);
 }
 
 function ensureDir(p) {
@@ -25,7 +25,26 @@ function writeFileSafe(filePath, content) {
   fs.writeFileSync(filePath, content);
 }
 
-async function cmdCreate(dirArg) {
+async function cmdCreate(args) {
+  // Parse args: first positional is dir; flags after
+  let dirArg = null;
+  const opts = { install: 'never', git: 'no', pm: 'auto', skipExamples: false, force: false, silent: false };
+  const allowedInstall = new Set(['auto','npm','pnpm','yarn','bun','never']);
+  for (let i = 0; i < (args ? args.length : 0); i++) {
+    const a = args[i];
+    if (!a) continue;
+    if (a.startsWith('--')) {
+      if (a === '--skip-examples') { opts.skipExamples = true; continue; }
+      if (a === '--force') { opts.force = true; continue; }
+      if (a === '--silent' || a === '--yes') { opts.silent = true; continue; }
+      if (a === '--install') { const v = args[i+1]; if (v && !v.startsWith('--') && allowedInstall.has(v)) { opts.install = v; i++; } continue; }
+      if (a === '--git') { const v = args[i+1]; if (v && (v === 'yes' || v === 'no')) { opts.git = v; i++; } continue; }
+      if (a === '--pm') { const v = args[i+1]; if (v && ['auto','npm','pnpm','yarn','bun'].includes(v)) { opts.pm = v; i++; } continue; }
+      continue;
+    } else if (!dirArg) {
+      dirArg = a;
+    }
+  }
   const dest = path.resolve(process.cwd(), dirArg || 'smoothjs-app');
   if (fs.existsSync(dest) && fs.readdirSync(dest).length > 0) {
     console.error(`Target directory not empty: ${dest}`);
@@ -44,7 +63,14 @@ async function cmdCreate(dirArg) {
     process.exit(1);
   }
 
-  const scaffold = new ProjectScaffold(projectName, path.dirname(dest));
+  const scaffold = new ProjectScaffold(projectName, path.dirname(dest), {
+    install: opts.install,
+    git: opts.git,
+    pm: opts.pm,
+    skipExamples: opts.skipExamples,
+    force: opts.force,
+    silent: opts.silent
+  });
   const ok = await scaffold.scaffold();
   if (!ok) process.exit(1);
 
@@ -128,7 +154,7 @@ function main(argv) {
   const args = argv.slice(2);
   const cmd = args[0] || 'help';
   if (cmd === 'help' || cmd === '--help' || cmd === '-h') return printHelp();
-  if (cmd === 'create') return cmdCreate(args[1]).then(()=>{});
+  if (cmd === 'create') return cmdCreate(args.slice(1)).then(()=>{});
   if (cmd === 'serve') {
     let dir = args[1] && !args[1].startsWith('--') ? args[1] : '.';
     let portIdx = args.findIndex(a => a === '--port');

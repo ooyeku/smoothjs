@@ -6,10 +6,18 @@ import path from 'path';
  * Enforces the recommended directory structure for new projects
  */
 export class ProjectScaffold {
-  constructor(projectName, targetDir = process.cwd()) {
+  constructor(projectName, targetDir = process.cwd(), options = {}) {
     this.projectName = projectName;
     this.targetDir = path.resolve(targetDir);
     this.projectDir = path.join(this.targetDir, projectName);
+    this.options = {
+      install: options.install || 'never', // 'auto' | 'npm' | 'pnpm' | 'yarn' | 'bun' | 'never'
+      git: options.git || 'no',            // 'yes' | 'no'
+      pm: options.pm || 'auto',            // 'auto' | 'npm' | 'pnpm' | 'yarn' | 'bun'
+      skipExamples: !!options.skipExamples,
+      force: !!options.force,
+      silent: !!options.silent
+    };
     
     // Default directory structure
     this.directories = [
@@ -46,7 +54,8 @@ export class ProjectScaffold {
    */
   async scaffold() {
     try {
-      console.log(`Creating SmoothJS project: ${this.projectName}`);
+      this._log(`Creating SmoothJS project: ${this.projectName}`);
+      this._validateProjectName(this.projectName);
       
       // Create project directory
       await this.createProjectDirectory();
@@ -57,15 +66,36 @@ export class ProjectScaffold {
       // Create template files
       await this.createTemplateFiles();
       
-      // Create example components
-      await this.createExampleComponents();
-      
-      console.log(`Project ${this.projectName} created successfully!`);
-      console.log(`Location: ${this.projectDir}`);
-      console.log('\nNext steps:');
-      console.log(`  cd ${this.projectName}`);
-      console.log('  npm install');
-      console.log('  npm run dev');
+      // Create example components (optional)
+      if (!this.options.skipExamples) {
+        await this.createExampleComponents();
+      } else {
+        this._log('Skipping example components (--skip-examples)');
+      }
+
+      // Initialize git if requested
+      if (this.options.git === 'yes') {
+        await this._initGit();
+      }
+
+      // Install dependencies if requested
+      const pm = await this._detectPackageManager(this.options.pm);
+      const doInstall = this.options.install !== 'never';
+      if (doInstall) {
+        await this._installDependencies(pm);
+      }
+
+      this._log(`Project ${this.projectName} created successfully!`);
+      this._log(`Location: ${this.projectDir}`);
+      this._log('\nNext steps:');
+      this._log(`  cd ${this.projectName}`);
+      if (!doInstall) {
+        this._log(`  ${pm} install`);
+      }
+      if (this.options.git !== 'yes') {
+        this._log('  git init && git add -A && git commit -m "chore: initial commit"');
+      }
+      this._log('  npm run dev');
       
       return true;
     } catch (error) {
@@ -79,8 +109,12 @@ export class ProjectScaffold {
    */
   async createProjectDirectory() {
     try {
+      // Guard overwrite unless --force
+      if (fsSync.existsSync(this.projectDir) && !this.options.force) {
+        throw new Error(`Directory "${this.projectName}" already exists. Use --force to overwrite or choose another name.`);
+      }
       await fs.mkdir(this.projectDir, { recursive: true });
-      console.log(`Created project directory: ${this.projectName}`);
+      this._log(`Created project directory: ${this.projectName}`);
     } catch (error) {
       throw new Error(`Failed to create project directory: ${error.message}`);
     }
@@ -94,7 +128,7 @@ export class ProjectScaffold {
       const dirPath = path.join(this.projectDir, dir);
       try {
         await fs.mkdir(dirPath, { recursive: true });
-        console.log(`Created directory: ${dir}`);
+        this._log(`Created directory: ${dir}`);
       } catch (error) {
         throw new Error(`Failed to create directory ${dir}: ${error.message}`);
       }
@@ -113,9 +147,15 @@ export class ProjectScaffold {
         // Ensure directory exists
         await fs.mkdir(dir, { recursive: true });
         
+        // Skip overwrite unless --force
+        if (fsSync.existsSync(fullPath) && !this.options.force) {
+          this._log(`Exists, skipping: ${filePath}`);
+          continue;
+        }
+        
         // Write file
         await fs.writeFile(fullPath, content, 'utf8');
-        console.log(`Created: ${filePath}`);
+        this._log(`Created: ${filePath}`);
       } catch (error) {
         throw new Error(`Failed to create ${filePath}: ${error.message}`);
       }
@@ -139,8 +179,12 @@ export class ProjectScaffold {
     for (const [filePath, content] of Object.entries(examples)) {
       const fullPath = path.join(this.projectDir, filePath);
       try {
+        if (fsSync.existsSync(fullPath) && !this.options.force) {
+          this._log(`Exists, skipping: ${filePath}`);
+          continue;
+        }
         await fs.writeFile(fullPath, content, 'utf8');
-        console.log(`Created: ${filePath}`);
+        this._log(`Created: ${filePath}`);
       } catch (error) {
         throw new Error(`Failed to create ${filePath}: ${error.message}`);
       }
@@ -955,3 +999,58 @@ export function ${name}Helper() {
 }`;
   }
 }
+
+
+// --- CLI helper methods (prototype extensions) ---
+ProjectScaffold.prototype._log = function(msg) {
+  try { if (!this.options || !this.options.silent) console.log(msg); } catch {}
+};
+
+ProjectScaffold.prototype._validateProjectName = function(name) {
+  const isValid = /^[a-z0-9\-~][a-z0-9\-._~]*$/.test(String(name || ''));
+  if (!isValid) {
+    throw new Error(`Invalid project name "${name}". Use lowercase letters, digits, ., _, or - and start with a letter/digit.`);
+  }
+};
+
+ProjectScaffold.prototype._detectPackageManager = async function(pm) {
+  if (pm && pm !== 'auto') return pm;
+  const ua = process.env.npm_config_user_agent || '';
+  if (ua.includes('pnpm')) return 'pnpm';
+  if (ua.includes('yarn')) return 'yarn';
+  if (ua.includes('bun')) return 'bun';
+  return 'npm';
+};
+
+ProjectScaffold.prototype._installDependencies = async function(pm) {
+  this._log(`Installing dependencies with ${pm}...`);
+  try {
+    const { execSync } = await import('node:child_process');
+    const cmd = pm === 'npm' ? 'npm install' :
+                pm === 'pnpm' ? 'pnpm install' :
+                pm === 'yarn' ? 'yarn' :
+                pm === 'bun' ? 'bun install' : 'npm install';
+    execSync(cmd, { stdio: 'inherit', cwd: this.projectDir });
+    this._log('Dependencies installed.');
+  } catch (e) {
+    this._log('Dependency installation failed. You can run it manually later.');
+  }
+};
+
+ProjectScaffold.prototype._initGit = async function() {
+  try {
+    const { execSync } = await import('node:child_process');
+    try {
+      execSync('git rev-parse --is-inside-work-tree', { cwd: this.projectDir, stdio: 'ignore' });
+      this._log('Git repo detected, skipping git init.');
+      return;
+    } catch {}
+    this._log('Initializing git repository...');
+    execSync('git init', { cwd: this.projectDir, stdio: 'ignore' });
+    execSync('git add -A', { cwd: this.projectDir, stdio: 'ignore' });
+    execSync('git commit -m "chore: initial commit"', { cwd: this.projectDir, stdio: 'ignore' });
+    this._log('Git repository initialized.');
+  } catch {
+    this._log('Git initialization failed. You can run it manually later.');
+  }
+};

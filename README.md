@@ -63,4 +63,4 @@ Then explore the runnable examples:
 
 ## Version
 
-This README reflects SmoothJS v1.9.0
+This README reflects SmoothJS v1.0.0
