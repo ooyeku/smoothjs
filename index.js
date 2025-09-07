@@ -30,7 +30,7 @@ import * as Testing from './src/testing/index.js';
 import * as Security from './src/security/index.js';
 import * as Forms from './src/forms/index.js';
 
-const version = '1.0.0';
+const version = '1.0.0-beta';
 
 const SmoothJS = {
   createContext,

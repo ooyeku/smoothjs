@@ -1,4 +1,4 @@
-import { defineComponent, createStore, utils } from '../../index.js';
+import { defineComponent, createStore, utils, Velvet } from '../../index.js';
 
 // Todo Page (functional)
 export const TodoPage = defineComponent(({ useState, html, on, find }) => {
@@ -17,6 +17,8 @@ export const TodoPage = defineComponent(({ useState, html, on, find }) => {
   const [todos, setTodos] = useState(() => local.getState().todos || []);
   const [newTodo, setNewTodo] = useState('');
   const [filter, setFilter] = useState('all');
+  let todoInput = null;
+  let addButton = null;
 
   // Subscribe to local store; update todos + persist
   let unsub = null;
@@ -25,18 +27,64 @@ export const TodoPage = defineComponent(({ useState, html, on, find }) => {
       setTodos(s.todos || []);
       saveTodos(s.todos || []);
     });
+    // Mount VelvetUI Input and Button using new features
+    const { VelvetUI } = Velvet;
+    const inputHost = find('#todo-input-host');
+    const addHost = find('#todo-add-host');
+    if (inputHost) {
+      todoInput = new VelvetUI.Input(null, {}, {
+        id: 'new-todo',
+        placeholder: 'What needs to be done?',
+        value: newTodo,
+        clearable: true,
+        startIcon: '✍',
+        helperText: '',
+        onInput: (e) => setNewTodo(e.target.value),
+        onChange: (e) => setNewTodo(e.target.value)
+      });
+      todoInput.mount(inputHost);
+    }
+    if (addHost) {
+      addButton = new VelvetUI.Button(null, {}, {
+        variant: 'primary',
+        children: 'Add',
+        startIcon: '+',
+        onClick: () => add()
+      });
+      addButton.mount(addHost);
+    }
   };
-  const onUnmount = () => { try { unsub && unsub(); } catch {} };
+  const onUnmount = () => { 
+    try { unsub && unsub(); } catch {}
+    try { todoInput && todoInput.unmount(); } catch {}
+    try { addButton && addButton.unmount(); } catch {}
+    todoInput = null; addButton = null;
+  };
 
   // Event handlers
   on('input', '#new-todo', (e) => setNewTodo(e.target.value));
   on('keydown', '#new-todo', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      // delegate to add
-      const btn = (e.currentTarget && e.currentTarget.closest) ? e.currentTarget.closest('div')?.querySelector('#add-btn') : null;
-      if (btn) btn.click();
-      else add();
+    // Safely detect Enter without invoking problematic getters on e.key
+    let key = '';
+    if (e && typeof e === 'object') {
+      const code = (typeof e.which === 'number') ? e.which : (typeof e.keyCode === 'number' ? e.keyCode : null);
+      if (code != null) {
+        if (code === 13) key = 'Enter';
+      } else if ('key' in e && typeof e.key === 'string') {
+        key = e.key;
+      }
+    }
+    if (key === 'Enter') {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      // delegate to add via button click if present; fallback to direct add()
+      const btn = (e && e.currentTarget && e.currentTarget.closest)
+        ? e.currentTarget.closest('div')?.querySelector('#add-btn')
+        : null;
+      if (btn) {
+        try { btn.click(); } catch { add(); }
+      } else {
+        add();
+      }
     }
   });
   const add = () => {
@@ -45,6 +93,7 @@ export const TodoPage = defineComponent(({ useState, html, on, find }) => {
     const todo = { id: Date.now(), text, completed: false, createdAt: new Date().toISOString() };
     local.setState({ todos: [...(todos || []), todo] });
     setNewTodo('');
+    try { todoInput && todoInput.setProps({ value: '' }); } catch {}
     try { const i = find('#new-todo'); if (i) i.focus(); } catch {}
   };
   on('click', '#add-btn', add);
@@ -93,13 +142,8 @@ export const TodoPage = defineComponent(({ useState, html, on, find }) => {
           </div>
           
           <div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem;">
-            <input 
-              id="new-todo" 
-              style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; background: var(--card); color: inherit;"
-              placeholder="What needs to be done?" 
-              value="${utils.escapeHtml(newTodo)}"
-            >
-            <button id="add-btn" style="background: var(--primary); color: white; border: 1px solid var(--primary); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Add</button>
+            <span id="todo-input-host" style="flex:1"></span>
+            <span id="todo-add-host"></span>
           </div>
           
           <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; justify-content: center;">

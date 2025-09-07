@@ -29,7 +29,10 @@ export const TodoApp = defineComponent((ctx) => {
   on('click', '#clearDone', clearDone);
   on('click', '.filter', (e) => setFilter(e.currentTarget.getAttribute('data-filter')));
   on('input', '#new', (e) => setText(e.currentTarget.value));
-  on('keydown', '#new', (e) => { if (e.key === 'Enter') add(); });
+  on('keydown', '#new', (e) => {
+    const key = (e && typeof e === 'object') ? (e.key || ((e.keyCode === 13 || e.which === 13) ? 'Enter' : '')) : '';
+    if (key === 'Enter') add();
+  });
 
   const filtered = items.filter(i => filter === 'all' ? true : (filter === 'active' ? !i.done : i.done));
 

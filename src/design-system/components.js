@@ -10,7 +10,15 @@ export class VButton extends VelvetComponent {
     disabled: false,
     fullWidth: false,
     onClick: null,
-    ripple: true
+    ripple: true,
+    type: 'button', // 'button' | 'submit' | 'reset'
+    startIcon: null,
+    endIcon: null,
+    loadingText: 'Loading',
+    ariaLabel: null,
+    href: null,      // if provided and not disabled/loading, render as link
+    target: null,
+    rel: null
   };
   
   constructor(element, initialState, props) {
@@ -18,28 +26,92 @@ export class VButton extends VelvetComponent {
   }
   
   onCreate() {
-    if (this.props.onClick) {
-      this.on('click', 'button', (e) => {
-        if (this.props.ripple) {
-          this.ripple(e);
-        }
+    // Unified click handler for <button> and anchor-as-button
+    this.on('click', 'button, a[role="button"]', (e) => {
+      const isDisabled = this.props.disabled || this.props.loading;
+      if (isDisabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (this.props.ripple) {
+        this.ripple(e);
+      }
+      if (typeof this.props.onClick === 'function') {
         this.props.onClick(e);
-      });
-    }
+      }
+    });
+    // Keyboard activation for anchor with role="button"
+    this.on('keydown', 'a[role="button"]', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        try { e.currentTarget.click(); } catch {}
+      }
+    });
   }
   
   template() {
-    const { variant, size, loading, disabled, fullWidth, children } = this.props;
+    const {
+      variant,
+      size,
+      loading,
+      disabled,
+      fullWidth,
+      children,
+      type,
+      startIcon,
+      endIcon,
+      loadingText,
+      ariaLabel,
+      href,
+      target,
+      rel
+    } = this.props;
     const buttonClass = this.v.button(variant, size);
     const additionalStyles = fullWidth ? { width: '100%' } : {};
+    const isDisabled = !!(disabled || loading);
+    const commonAttrs = `
+      class="${buttonClass} ${loading ? 'opacity-75' : ''}"
+      style="${Object.entries(additionalStyles).map(([k, v]) => `${k}: ${v}`).join('; ')}"
+      data-variant="${variant}"
+      data-size="${size}"
+      data-state="${loading ? 'loading' : (disabled ? 'disabled' : 'ready')}"
+      aria-busy="${loading ? 'true' : 'false'}"
+      ${ariaLabel ? `aria-label="${ariaLabel}"` : ''}
+    `;
+    const content = loading
+      ? this.html`${this.renderSpinner()}<span style="${this._srOnlyStyle()}">${loadingText || 'Loading'}</span>`
+      : this.html`
+          ${startIcon ? this._renderInlineIcon(startIcon) : ''}
+          <span>${children || 'Button'}</span>
+          ${endIcon ? this._renderInlineIcon(endIcon) : ''}
+        `;
     
+    // Prefer anchor when href is provided AND not disabled/loading
+    if (href && !isDisabled) {
+      const safeRel = target === '_blank'
+        ? (rel ? rel : 'noopener noreferrer')
+        : (rel || '');
+      return this.html`
+        <a
+          ${commonAttrs}
+          href="${href}"
+          ${target ? `target="${target}"` : ''}
+          ${safeRel ? `rel="${safeRel}"` : ''}
+          role="button"
+          aria-disabled="false"
+        >${content}</a>
+      `;
+    }
+
     return this.html`
       <button 
-        class="${buttonClass} ${loading ? 'opacity-75' : ''}"
-        style="${Object.entries(additionalStyles).map(([k, v]) => `${k}: ${v}`).join('; ')}"
-        disabled=${disabled || loading}
+        ${commonAttrs}
+        type="${type || 'button'}"
+        ${isDisabled ? 'disabled' : ''}
+        aria-disabled="${isDisabled ? 'true' : 'false'}"
       >
-        ${loading ? this.renderSpinner() : (children || 'Button')}
+        ${content}
       </button>
     `;
   }
@@ -57,7 +129,29 @@ export class VButton extends VelvetComponent {
       }
     });
     
-    return this.html`<span class="${spinnerClass}"></span> Loading...`;
+    return this.html`<span class="${spinnerClass}" aria-hidden="true"></span>`;
+  }
+
+  _srOnlyStyle() {
+    return [
+      'position:absolute',
+      'width:1px',
+      'height:1px',
+      'padding:0',
+      'margin:-1px',
+      'overflow:hidden',
+      'clip:rect(0,0,0,0)',
+      'white-space:nowrap',
+      'border:0'
+    ].join(';');
+  }
+
+  _renderInlineIcon(icon) {
+    // Accepts string, HTMLElement, or template
+    const wrapStyle = this.vs({
+      base: { display: 'inline-flex', alignItems: 'center' }
+    });
+    return this.html`<span class="${wrapStyle}" aria-hidden="true">${icon}</span>`;
   }
 }
 
@@ -126,12 +220,34 @@ export class VInput extends VelvetComponent {
   static defaultProps = {
     type: 'text',
     size: 'md',
-    error: false,
-    icon: null,
+    error: false,           // boolean | string
+    helperText: '',         // non-error guidance text
+    icon: null,             // deprecated: prefer startIcon/endIcon
+    startIcon: null,
+    endIcon: null,
     placeholder: '',
     value: '',
+    name: '',
+    id: null,
+    labelId: null,          // id of external label element (if any)
+    required: false,
+    disabled: false,
+    readOnly: false,
+    autoComplete: null,     // allow override
+    inputMode: null,        // allow override
+    maxLength: null,
+    minLength: null,
+    min: null,
+    max: null,
+    step: null,
+    fullWidth: true,
+    clearable: false,       // show clear button (text-like types)
+    showPasswordToggle: true, // for type="password"
+    loading: false,         // show inline spinner and aria-busy
     onChange: null,
-    onInput: null
+    onInput: null,
+    onClear: null,
+    validate: null          // (value) => string | false
   };
   
   constructor(element, initialState, props) {
@@ -139,17 +255,104 @@ export class VInput extends VelvetComponent {
   }
   
   onCreate() {
-    if (this.props.onChange) {
-      this.on('change', 'input', this.props.onChange);
-    }
-    if (this.props.onInput) {
-      this.on('input', 'input', this.props.onInput);
+    // Robust event binding; guard-calls to user handlers if provided
+    this.on('input', 'input', (e) => {
+      // Avoid emitting during IME composition
+      if (e.isComposing) return;
+      if (typeof this.props.onInput === 'function') {
+        this.props.onInput(e);
+      }
+      this._runValidation(e.currentTarget?.value ?? '');
+    });
+    this.on('change', 'input', (e) => {
+      if (e.isComposing) return;
+      if (typeof this.props.onChange === 'function') {
+        this.props.onChange(e);
+      }
+      this._runValidation(e.currentTarget?.value ?? '');
+    });
+    // Clear button
+    this.on('click', '.vinput-clear', (e) => {
+      const input = this._getInput();
+      if (!input || input.disabled || input.readOnly) return;
+      input.value = '';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      if (typeof this.props.onClear === 'function') {
+        try { this.props.onClear(); } catch {}
+      }
+      input.focus();
+    });
+    // Password toggle
+    this.on('click', '.vinput-toggle', (e) => {
+      const input = this._getInput();
+      if (!input) return;
+      const isPassword = input.getAttribute('type') === 'password';
+      input.setAttribute('type', isPassword ? 'text' : 'password');
+      e.currentTarget.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+      input.focus({ preventScroll: true });
+    });
+    // Keyboard support for interactive adornments
+    this.on('keydown', '.vinput-clear, .vinput-toggle', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        try { e.currentTarget.click(); } catch {}
+      }
+    });
+  }
+  
+  // Public helpers
+  focus() { this._getInput()?.focus(); }
+  blur() { this._getInput()?.blur(); }
+  select() { this._getInput()?.select?.(); }
+
+  _getInput() {
+    return this.element?.querySelector('input');
+  }
+
+  _runValidation(value) {
+    if (typeof this.props.validate === 'function') {
+      let msg = '';
+      try { msg = this.props.validate(value) || ''; } catch {}
+      if (typeof msg === 'string' && msg) {
+        // Set error message via a prop/state bridge if your system supports it
+        // Here we just trigger a re-render with transient state
+        this.setState({ _err: msg });
+      } else if (this.state?._err) {
+        this.setState({ _err: '' });
+      }
     }
   }
   
   template() {
-    const { type, size, error, icon, placeholder, value } = this.props;
-    
+    const {
+      type,
+      size,
+      error,
+      helperText,
+      icon,
+      startIcon,
+      endIcon,
+      placeholder,
+      value,
+      name,
+      id,
+      labelId,
+      required,
+      disabled,
+      readOnly,
+      autoComplete,
+      inputMode,
+      maxLength,
+      minLength,
+      min,
+      max,
+      step,
+      fullWidth,
+      clearable,
+      showPasswordToggle,
+      loading
+    } = this.props;
+
     const sizeMap = {
       sm: { padding: '0.5rem 0.75rem', fontSize: '0.875rem' },
       md: { padding: '0.75rem 1rem', fontSize: '1rem' },
@@ -158,68 +361,118 @@ export class VInput extends VelvetComponent {
     
     const inputStyle = {
       base: {
-        width: '100%',
+        width: fullWidth ? '100%' : 'auto',
         ...sizeMap[size],
         lineHeight: '1.5',
         color: '#18181b',
         backgroundColor: 'white',
         border: '1px solid',
-        borderColor: error ? '#ef4444' : '#d4d4d8',
+        borderColor: (error || this.state?._err) ? '#ef4444' : '#d4d4d8',
         borderRadius: '8px',
         transition: 'all 250ms ease',
         outline: 'none',
-        ...(icon && { paddingLeft: '2.5rem' })
+        paddingLeft: (icon || startIcon) ? '2.5rem' : sizeMap[size].padding.split(' ')[1],
+        paddingRight: (endIcon || clearable || (type === 'password' && showPasswordToggle) || loading) ? '2.5rem' : sizeMap[size].padding.split(' ')[1],
+        opacity: disabled ? '0.6' : '1'
       },
-      focus: {
-        borderColor: error ? '#ef4444' : '#0ea5e9',
-        boxShadow: error 
+      focus: {},
+      focusVisible: {
+        borderColor: (error || this.state?._err) ? '#ef4444' : '#0ea5e9',
+        boxShadow: (error || this.state?._err)
           ? '0 0 0 3px rgba(239, 68, 68, 0.1)'
-          : '0 0 0 3px rgba(14, 165, 233, 0.1)'
+          : '0 0 0 3px rgba(14, 165, 233, 0.15)'
       },
       dark: {
         backgroundColor: '#18181b',
         color: '#fafafa',
-        borderColor: error ? '#ef4444' : '#52525b'
+        borderColor: (error || this.state?._err) ? '#ef4444' : '#52525b'
       }
     };
     
     const wrapperStyle = {
       base: {
         position: 'relative',
-        width: '100%'
+        width: fullWidth ? '100%' : 'auto'
       }
     };
-    
+
+    // Derive a11y attributes
+    const inputId = id || `vinput-${Math.random().toString(36).slice(2, 8)}`;
+    const helperId = helperText ? `${inputId}-help` : '';
+    const errorMsg = typeof error === 'string' ? error : (this.state?._err || '');
+    const errorId = (errorMsg) ? `${inputId}-error` : '';
+    const describedBy = [helperId, errorId].filter(Boolean).join(' ') || null;
+    const ariaAutoComplete = autoComplete ?? this._inferAutocomplete(type);
+    const ariaInputMode = inputMode ?? this._inferInputMode(type);
+
     return this.html`
       <div class="${this.vs(wrapperStyle)}">
-        ${icon ? this.renderIcon(icon) : ''}
-        <input 
+        ${(icon || startIcon) ? this.renderIcon(startIcon || icon, 'start') : ''}
+        ${(endIcon && !(clearable || (type === 'password' && showPasswordToggle) || loading)) ? this.renderIcon(endIcon, 'end') : ''}
+
+        <input
+          id="${inputId}"
+          name="${name || ''}"
           type="${type}"
           class="${this.vs(inputStyle)}"
           placeholder="${placeholder}"
           value="${value}"
+          ${required ? 'required' : ''}
+          ${disabled ? 'disabled' : ''}
+          ${readOnly ? 'readonly' : ''}
+          ${maxLength != null ? `maxlength="${maxLength}"` : ''}
+          ${minLength != null ? `minlength="${minLength}"` : ''}
+          ${min != null ? `min="${min}"` : ''}
+          ${max != null ? `max="${max}"` : ''}
+          ${step != null ? `step="${step}"` : ''}
+          ${ariaAutoComplete ? `autocomplete="${ariaAutoComplete}"` : ''}
+          ${ariaInputMode ? `inputmode="${ariaInputMode}"` : ''}
+          ${labelId ? `aria-labelledby="${labelId}"` : ''}
+          ${describedBy ? `aria-describedby="${describedBy}"` : ''}
+          aria-invalid="${(error || this.state?._err) ? 'true' : 'false'}"
+          aria-errormessage="${errorId || ''}"
+          aria-busy="${loading ? 'true' : 'false'}"
+          spellcheck="${this._inferSpellcheck(type)}"
         />
-        ${error && typeof error === 'string' ? this.renderError(error) : ''}
+
+        ${clearable && this._isClearableType(type) ? this._renderClear(inputId) : ''}
+        ${(type === 'password' && showPasswordToggle) ? this._renderPasswordToggle() : ''}
+        ${loading ? this._renderEndSpinner() : ''}
+
+        ${helperText ? this.renderHelper(helperText, helperId) : ''}
+        ${(errorMsg) ? this.renderError(errorMsg, errorId) : ''}
       </div>
     `;
   }
   
-  renderIcon(icon) {
+  renderIcon(icon, slot = 'start') {
+    const pos = slot === 'end' ? { right: '0.75rem' } : { left: '0.75rem' };
     const iconStyle = {
       base: {
         position: 'absolute',
-        left: '0.75rem',
         top: '50%',
         transform: 'translateY(-50%)',
         color: '#71717a',
-        pointerEvents: 'none'
+        pointerEvents: 'none',
+        ...pos
       }
     };
-    
-    return this.html`<span class="${this.vs(iconStyle)}">${icon}</span>`;
+    return this.html`<span class="${this.vs(iconStyle)}" aria-hidden="true">${icon}</span>`;
   }
   
-  renderError(message) {
+  renderHelper(message, id) {
+    const helperStyle = {
+      base: {
+        marginTop: '0.25rem',
+        fontSize: '0.875rem',
+        color: '#52525b'
+      },
+      dark: { color: '#a1a1aa' }
+    };
+    return this.html`<p id="${id}" class="${this.vs(helperStyle)}">${message}</p>`;
+  }
+
+  renderError(message, id) {
     const errorStyle = {
       base: {
         marginTop: '0.25rem',
@@ -227,8 +480,97 @@ export class VInput extends VelvetComponent {
         color: '#ef4444'
       }
     };
-    
-    return this.html`<p class="${this.vs(errorStyle)}">${message}</p>`;
+    return this.html`<p id="${id}" class="${this.vs(errorStyle)}" role="status" aria-live="polite">${message}</p>`;
+  }
+
+  _renderClear(forId) {
+    const btnStyle = this.vs({
+      base: {
+        position: 'absolute',
+        right: '0.375rem',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        border: 'none',
+        background: 'transparent',
+        cursor: 'pointer',
+        padding: '0.25rem',
+        borderRadius: '6px',
+        color: '#71717a'
+      },
+      hover: { backgroundColor: 'rgba(0,0,0,0.05)' },
+      dark: { color: '#a1a1aa' }
+    });
+    return this.html`<button type="button" class="vinput-clear ${btnStyle}" aria-label="Clear input" tabindex="0" ${forId ? `aria-controls="${forId}"` : ''}>×</button>`;
+  }
+
+  _renderPasswordToggle() {
+    const btnStyle = this.vs({
+      base: {
+        position: 'absolute',
+        right: '0.375rem',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        border: 'none',
+        background: 'transparent',
+        cursor: 'pointer',
+        padding: '0.25rem',
+        borderRadius: '6px',
+        color: '#71717a'
+      },
+      hover: { backgroundColor: 'rgba(0,0,0,0.05)' },
+      dark: { color: '#a1a1aa' }
+    });
+    return this.html`<button type="button" class="vinput-toggle ${btnStyle}" aria-label="Show password" aria-pressed="false" tabindex="0">👁</button>`;
+  }
+
+  _renderEndSpinner() {
+    const spinnerClass = this.vs({
+      base: {
+        position: 'absolute',
+        right: '0.75rem',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        display: 'inline-block',
+        width: '1em',
+        height: '1em',
+        border: '2px solid transparent',
+        borderTopColor: 'currentColor',
+        borderRadius: '50%',
+        animation: 'spin 0.6s linear infinite',
+        color: '#71717a'
+      }
+    });
+    return this.html`<span class="${spinnerClass}" aria-hidden="true"></span>`;
+  }
+
+  _isClearableType(type) {
+    return ['text', 'search', 'email', 'tel', 'url'].includes(type);
+  }
+
+  _inferInputMode(type) {
+    switch (type) {
+      case 'email': return 'email';
+      case 'tel': return 'tel';
+      case 'url': return 'url';
+      case 'number': return 'decimal';
+      default: return null;
+    }
+  }
+
+  _inferAutocomplete(type) {
+    // Provide sensible defaults; can be overridden by prop
+    switch (type) {
+      case 'email': return 'email';
+      case 'password': return 'current-password';
+      case 'tel': return 'tel';
+      case 'url': return 'url';
+      case 'name': return 'name';
+      default: return 'on';
+    }
+  }
+
+  _inferSpellcheck(type) {
+    return (type === 'password' || type === 'email' || type === 'url' || type === 'number') ? 'false' : 'true';
   }
 }
 

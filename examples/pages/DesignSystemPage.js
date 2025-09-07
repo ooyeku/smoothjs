@@ -14,9 +14,9 @@ export const DesignSystemPage = defineComponent(({ html, on, useState, useEffect
     const b1Host = find('#btn1');
     const b2Host = find('#btn2');
     const b3Host = find('#btn3');
-    btn1 = new VelvetUI.Button(null, {}, { variant: 'primary', children: 'Primary', onClick: () => console.log('Primary clicked') });
-    btn2 = new VelvetUI.Button(null, {}, { variant: 'secondary', children: 'Secondary' });
-    btn3 = new VelvetUI.Button(null, {}, { variant: 'ghost', children: 'Ghost' });
+    btn1 = new VelvetUI.Button(null, {}, { variant: 'primary', children: 'Primary', startIcon: '★', endIcon: '→', onClick: () => console.log('Primary clicked') });
+    btn2 = new VelvetUI.Button(null, {}, { variant: 'secondary', children: 'Loading', loading: true, loadingText: 'Please wait' });
+    btn3 = new VelvetUI.Button(null, {}, { variant: 'ghost', children: 'External', href: 'https://example.com', target: '_blank', endIcon: '↗' });
     if (b1Host) btn1.mount(b1Host);
     if (b2Host) btn2.mount(b2Host);
     if (b3Host) btn3.mount(b3Host);
@@ -26,6 +26,11 @@ export const DesignSystemPage = defineComponent(({ html, on, useState, useEffect
     input = new VelvetUI.Input(null, {}, {
       placeholder: 'Type to update state...',
       value: inputValue,
+      helperText: 'We will echo your text below.',
+      clearable: true,
+      startIcon: '🔎',
+      endIcon: '⌨',
+      validate: (v) => (v && v.length < 3 ? 'Min 3 characters' : ''),
       onInput: (e) => setInputValue(e.target.value)
     });
     if (inputHost) input.mount(inputHost);
