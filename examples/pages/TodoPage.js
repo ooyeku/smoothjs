@@ -97,7 +97,7 @@ export const TodoPage = defineComponent((ctx) => {
       <div style="display:flex; gap:.5rem; margin-top:.75rem;">
         <button class="filter" style="${btnSecondary}; ${filter==='all' ? 'background: var(--primary); color:#fff; border-color: var(--primary);' : ''}" data-filter="all" type="button">All (${total})</button>
         <button class="filter" style="${btnSecondary}; ${filter==='active' ? 'background: var(--primary); color:#fff; border-color: var(--primary);' : ''}" data-filter="active" type="button">Active (${active})</button>
-        <button class="filter" style="${btnSecondary}; ${filter==='done' ? 'background:#0284c7; color:#fff; border-color:#0284c7;' : ''}" data-filter="done" type="button">Done (${done})</button>
+        <button class="filter" style="${btnSecondary}; ${filter==='done' ? 'background: var(--primary); color:#fff; border-color: var(--primary);' : ''}" data-filter="done" type="button">Done (${done})</button>
         <button id="clearDone" style="${btnSecondary}" type="button" ${done ? '' : 'disabled'}>Clear done</button>
       </div>
     </div>
