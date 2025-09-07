@@ -1,179 +1,107 @@
-import { defineComponent, createStore, utils, Velvet } from '../../index.js';
+import { defineComponent } from '../../index.js';
 
-// Todo Page (functional)
-export const TodoPage = defineComponent(({ useState, html, on, find }) => {
-  // Helpers for persistence
-  const loadTodos = () => {
+// Rebuilt Todo Page (simple, robust, no dependencies)
+export const TodoPage = defineComponent((ctx) => {
+  const { html, useState, useEffect, on } = ctx;
+
+  // State
+  const [text, setText] = useState('');
+  const [filter, setFilter] = useState('all'); // all | active | done
+  const [items, setItems] = useState(() => {
     try { return JSON.parse(localStorage.getItem('smoothjs-todos') || '[]'); } catch { return []; }
-  };
-  const saveTodos = (todos) => {
-    try { localStorage.setItem('smoothjs-todos', JSON.stringify(todos)); } catch (e) { console.warn('saveTodos failed', e); }
-  };
+  });
 
-  // Local store for todos list
-  const local = createStore({ todos: loadTodos() });
+  // Persist on changes
+  useEffect(() => {
+    try { localStorage.setItem('smoothjs-todos', JSON.stringify(items)); } catch {}
+  }, [items]);
 
-  // Component-local state
-  const [todos, setTodos] = useState(() => local.getState().todos || []);
-  const [newTodo, setNewTodo] = useState('');
-  const [filter, setFilter] = useState('all');
-  let todoInput = null;
-  let addButton = null;
-
-  // Subscribe to local store; update todos + persist
-  let unsub = null;
-  const onMount = () => {
-    unsub = local.subscribe((s) => {
-      setTodos(s.todos || []);
-      saveTodos(s.todos || []);
-    });
-    // Mount VelvetUI Input and Button using new features
-    const { VelvetUI } = Velvet;
-    const inputHost = find('#todo-input-host');
-    const addHost = find('#todo-add-host');
-    if (inputHost) {
-      todoInput = new VelvetUI.Input(null, {}, {
-        id: 'new-todo',
-        placeholder: 'What needs to be done?',
-        value: newTodo,
-        clearable: true,
-        startIcon: '✍',
-        helperText: '',
-        onInput: (e) => setNewTodo(e.target.value),
-        onChange: (e) => setNewTodo(e.target.value)
-      });
-      todoInput.mount(inputHost);
-    }
-    if (addHost) {
-      addButton = new VelvetUI.Button(null, {}, {
-        variant: 'primary',
-        children: 'Add',
-        startIcon: '+',
-        onClick: () => add()
-      });
-      addButton.mount(addHost);
-    }
-  };
-  const onUnmount = () => { 
-    try { unsub && unsub(); } catch {}
-    try { todoInput && todoInput.unmount(); } catch {}
-    try { addButton && addButton.unmount(); } catch {}
-    todoInput = null; addButton = null;
-  };
-
-  // Event handlers
-  on('input', '#new-todo', (e) => setNewTodo(e.target.value));
-  on('keydown', '#new-todo', (e) => {
-    // Safely detect Enter without invoking problematic getters on e.key
-    let key = '';
-    if (e && typeof e === 'object') {
+  // Helpers
+  const keyFromEvent = (e) => {
+    if (!e || typeof e !== 'object') return '';
+    // Prefer e.key, but accessing it can throw in some delegated/wrapped events
+    try {
+      if (typeof e.key === 'string') return e.key;
+    } catch {}
+    // Fallback to numeric codes; access guarded by try/catch to avoid WebIDL getter errors
+    try {
       const code = (typeof e.which === 'number') ? e.which : (typeof e.keyCode === 'number' ? e.keyCode : null);
-      if (code != null) {
-        if (code === 13) key = 'Enter';
-      } else if ('key' in e && typeof e.key === 'string') {
-        key = e.key;
-      }
-    }
-    if (key === 'Enter') {
-      if (e && typeof e.preventDefault === 'function') e.preventDefault();
-      // delegate to add via button click if present; fallback to direct add()
-      const btn = (e && e.currentTarget && e.currentTarget.closest)
-        ? e.currentTarget.closest('div')?.querySelector('#add-btn')
-        : null;
-      if (btn) {
-        try { btn.click(); } catch { add(); }
-      } else {
-        add();
-      }
-    }
-  });
+      if (code === 13) return 'Enter';
+      if (code === 32) return ' ';
+    } catch {}
+    return '';
+  };
+
+  // Actions
   const add = () => {
-    const text = String(newTodo || '').trim();
-    if (!text) return;
-    const todo = { id: Date.now(), text, completed: false, createdAt: new Date().toISOString() };
-    local.setState({ todos: [...(todos || []), todo] });
-    setNewTodo('');
-    try { todoInput && todoInput.setProps({ value: '' }); } catch {}
-    try { const i = find('#new-todo'); if (i) i.focus(); } catch {}
+    const t = String(text || '').trim();
+    if (!t) return;
+    setItems(list => [...list, { id: String(Date.now()), title: t, done: false }]);
+    setText('');
   };
-  on('click', '#add-btn', add);
+  const toggle = (id) => setItems(list => list.map(i => i.id === id ? { ...i, done: !i.done } : i));
+  const remove = (id) => setItems(list => list.filter(i => i.id !== id));
+  const clearDone = () => setItems(list => list.filter(i => !i.done));
 
-  on('change', '.todo-checkbox', (e) => {
-    const id = parseInt(e.target.dataset.id, 10);
-    if (Number.isNaN(id)) return;
-    const next = (todos || []).map(t => t.id === id ? { ...t, completed: !t.completed } : t);
-    local.setState({ todos: next });
+  // Events
+  on('input', '#new', (e) => {
+    const v = (e && e.currentTarget && typeof e.currentTarget.value === 'string') ? e.currentTarget.value : (e && e.target && typeof e.target.value === 'string' ? e.target.value : '');
+    setText(v);
   });
-
-  on('click', '.delete-btn', (e) => {
-    const id = parseInt(e.target.dataset.id, 10);
-    if (Number.isNaN(id)) return;
-    local.setState({ todos: (todos || []).filter(t => t.id !== id) });
+  on('keydown', '#new', (e) => { if (keyFromEvent(e) === 'Enter') { if (e && e.preventDefault) e.preventDefault(); add(); } });
+  on('click', '#add', add);
+  on('click', '.toggle', (e) => {
+    const id = (e && e.currentTarget && e.currentTarget.getAttribute) ? e.currentTarget.getAttribute('data-id') : (e && e.target && e.target.getAttribute ? e.target.getAttribute('data-id') : null);
+    if (id) toggle(id);
   });
-
-  on('click', '.filter-btn', (e) => {
-    e.preventDefault();
-    setFilter(e.target.dataset.filter);
+  on('click', '.remove', (e) => {
+    const id = (e && e.currentTarget && e.currentTarget.getAttribute) ? e.currentTarget.getAttribute('data-id') : (e && e.target && e.target.getAttribute ? e.target.getAttribute('data-id') : null);
+    if (id) remove(id);
   });
-
-  on('click', '#clear-completed', () => {
-    const remaining = (todos || []).filter(t => !t.completed);
-    local.setState({ todos: remaining });
+  on('click', '.filter', (e) => {
+    const val = (e && e.currentTarget && e.currentTarget.getAttribute) ? e.currentTarget.getAttribute('data-filter') : (e && e.target && e.target.getAttribute ? e.target.getAttribute('data-filter') : null);
+    if (val) setFilter(val);
   });
+  on('click', '#clearDone', clearDone);
 
-  const filtered = () => {
-    if (filter === 'active') return (todos || []).filter(t => !t.completed);
-    if (filter === 'completed') return (todos || []).filter(t => t.completed);
-    return todos || [];
-  };
+  const filtered = items.filter(i => filter === 'all' ? true : (filter === 'active' ? !i.done : i.done));
+  const total = items.length;
+  const active = items.filter(i => !i.done).length;
+  const done = total - active;
 
-  const render = () => {
-    const list = filtered();
-    const total = (todos || []).length;
-    const completed = (todos || []).filter(t => t.completed).length;
-    const active = total - completed;
+  const appStyle = 'max-width: 720px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; box-shadow: 0 8px 18px rgba(0,0,0,.06)';
+  const row = 'display:flex; gap:.5rem; align-items:center;';
+  const inputCls = 'flex:1; padding:.6rem .75rem; border:1px solid var(--border); border-radius:8px; font-size:14px; background: var(--card); color: inherit;';
+  const btnPrimary = 'padding:.55rem .8rem; border-radius:8px; background: var(--primary); color:#fff; border:1px solid var(--primary); cursor:pointer;';
+  const btnSecondary = 'padding:.55rem .8rem; border-radius:8px; background: transparent; color: var(--primary); border:1px solid var(--primary); cursor:pointer;';
 
-    return html`
-      <div style="max-width: 768px; margin: 0 auto; padding: 0.75rem 1rem;">
-        <div style="background: var(--card); border-radius: 12px; padding: 1rem 1.25rem; box-shadow: 0 10px 20px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.08); border: 1px solid var(--border);">
-          <div style="text-align: center; margin-bottom: 1.5rem;">
-            <h2 style="margin: 0 0 0.5rem 0; font-size: 1.875rem; font-weight: 600;">Todo</h2>
-            <p style="margin: 0; color: var(--muted);">Local state with focus preservation</p>
-          </div>
-          
-          <div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem;">
-            <span id="todo-input-host" style="flex:1"></span>
-            <span id="todo-add-host"></span>
-          </div>
-          
-          <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; justify-content: center;">
-            <button class="filter-btn" style="background: ${filter === 'all' ? 'var(--primary)' : 'transparent'}; color: ${filter === 'all' ? 'white' : 'var(--muted)'}; border: 1px solid ${filter === 'all' ? 'var(--primary)' : 'var(--border)'}; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.875rem;" data-filter="all">All (${total})</button>
-            <button class="filter-btn" style="background: ${filter === 'active' ? 'var(--primary)' : 'transparent'}; color: ${filter === 'active' ? 'white' : 'var(--muted)'}; border: 1px solid ${filter === 'active' ? 'var(--primary)' : 'var(--border)'}; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.875rem;" data-filter="active">Active (${active})</button>
-            <button class="filter-btn" style="background: ${filter === 'completed' ? 'var(--primary)' : 'transparent'}; color: ${filter === 'completed' ? 'white' : 'var(--muted)'}; border: 1px solid ${filter === 'completed' ? 'var(--primary)' : 'var(--border)'}; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.875rem;" data-filter="completed">Completed (${completed})</button>
-          </div>
-
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0.75rem; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 0.75rem;">
-            <div style="font-size: 0.875rem;">Showing ${list.length} of ${total} • Active ${active} • Completed ${completed}</div>
-            ${completed > 0 ? html`<button id="clear-completed" style="background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.875rem;" title="Remove completed items">Clear completed (${completed})</button>` : ''}
-          </div>
-          
-          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            ${list.length === 0 ? 
-              html`<div style="text-align: center; padding: 2rem; color: var(--muted); font-style: italic;">No ${filter === 'all' ? '' : filter} items</div>` : 
-              list.map(t => html`
-                <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--card); border-radius: 8px; border: 1px solid var(--border); transition: all 200ms ease;" data-key="${t.id}">
-                  <input type="checkbox" class="todo-checkbox" style="width: 1.25rem; height: 1.25rem;" data-id="${t.id}" ${t.completed?'checked':''}>
-                  <div style="flex: 1; ${t.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${utils.escapeHtml(t.text)}</div>
-                  <button class="delete-btn" style="padding: 0.25rem 0.5rem; background: #fef2f2; color: #dc2626; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; transition: all 200ms ease;" data-id="${t.id}">Delete</button>
-                </div>
-              `).join('')
-            }
-          </div>
-          
-        </div>
+  const render = () => html`
+    <div style="${appStyle}">
+      <h1 style="margin-top:0;">Todo</h1>
+      <div style="${row}">
+        <input id="new" type="text" style="${inputCls}" placeholder="What needs doing?" value="${text}">
+        <button id="add" style="${btnPrimary}" type="button">Add</button>
       </div>
-    `;
-  };
 
-  return { render, onMount, onUnmount };
+      <ul style="list-style:none; padding:0; margin:.75rem 0 0;">
+        ${filtered.length === 0 ? `<div style='color: var(--muted); padding:.5rem;'>No items</div>` : ''}
+        ${filtered.map(i => `
+          <li style="display:flex; align-items:center; gap:.5rem; padding:.5rem .25rem; border-bottom:1px dashed var(--border);" data-key="${i.id}">
+            <input class="toggle" type="checkbox" data-id="${i.id}" ${i.done ? 'checked' : ''}>
+            <span class="todo" style="flex:1; text-decoration:${i.done ? 'line-through' : 'none'}">${i.title}</span>
+            <button class="remove" style="${btnSecondary}" data-id="${i.id}" type="button">Delete</button>
+          </li>
+        `).join('')}
+      </ul>
+
+      <div style="display:flex; gap:.5rem; margin-top:.75rem;">
+        <button class="filter" style="${btnSecondary}; ${filter==='all' ? 'background: var(--primary); color:#fff; border-color: var(--primary);' : ''}" data-filter="all" type="button">All (${total})</button>
+        <button class="filter" style="${btnSecondary}; ${filter==='active' ? 'background:#0284c7; color:#fff; border-color:#0284c7;' : ''}" data-filter="active" type="button">Active (${active})</button>
+        <button class="filter" style="${btnSecondary}; ${filter==='done' ? 'background:#0284c7; color:#fff; border-color:#0284c7;' : ''}" data-filter="done" type="button">Done (${done})</button>
+        <button id="clearDone" style="${btnSecondary}" type="button" ${done ? '' : 'disabled'}>Clear done</button>
+      </div>
+    </div>
+  `;
+
+  return { render };
 });

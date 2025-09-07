@@ -31,7 +31,7 @@ export const DesignSystemPage = defineComponent(({ html, on, useState, useEffect
       startIcon: '🔎',
       endIcon: '⌨',
       validate: (v) => (v && v.length < 3 ? 'Min 3 characters' : ''),
-      onInput: (e) => setInputValue(e.target.value)
+      onInput: (e) => setInputValue((e && e.currentTarget && typeof e.currentTarget.value==='string') ? e.currentTarget.value : (e && e.target && typeof e.target.value==='string' ? e.target.value : ''))
     });
     if (inputHost) input.mount(inputHost);
 

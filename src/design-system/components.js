@@ -43,8 +43,18 @@ export class VButton extends VelvetComponent {
     });
     // Keyboard activation for anchor with role="button"
     this.on('keydown', 'a[role="button"]', (e) => {
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
+      let key = '';
+      if (e && typeof e === 'object') {
+        const code = (typeof e.which === 'number') ? e.which : (typeof e.keyCode === 'number' ? e.keyCode : null);
+        if (code != null) {
+          if (code === 13) key = 'Enter';
+          if (code === 32) key = ' ';
+        } else if ('key' in e && typeof e.key === 'string') {
+          key = e.key;
+        }
+      }
+      if (key === ' ' || key === 'Enter') {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
         try { e.currentTarget.click(); } catch {}
       }
     });
@@ -257,19 +267,29 @@ export class VInput extends VelvetComponent {
   onCreate() {
     // Robust event binding; guard-calls to user handlers if provided
     this.on('input', 'input', (e) => {
-      // Avoid emitting during IME composition
-      if (e.isComposing) return;
+      // Avoid emitting during IME composition (guard for non-native events)
+      const composing = !!(e && typeof e === 'object' && e.isComposing === true);
+      if (composing) return;
       if (typeof this.props.onInput === 'function') {
         this.props.onInput(e);
       }
-      this._runValidation(e.currentTarget?.value ?? '');
+      const val = (e && typeof e === 'object')
+        ? (e.currentTarget && typeof e.currentTarget.value === 'string' ? e.currentTarget.value
+          : (e.target && typeof e.target.value === 'string' ? e.target.value : ''))
+        : '';
+      this._runValidation(val);
     });
     this.on('change', 'input', (e) => {
-      if (e.isComposing) return;
+      const composing = !!(e && typeof e === 'object' && e.isComposing === true);
+      if (composing) return;
       if (typeof this.props.onChange === 'function') {
         this.props.onChange(e);
       }
-      this._runValidation(e.currentTarget?.value ?? '');
+      const val = (e && typeof e === 'object')
+        ? (e.currentTarget && typeof e.currentTarget.value === 'string' ? e.currentTarget.value
+          : (e.target && typeof e.target.value === 'string' ? e.target.value : ''))
+        : '';
+      this._runValidation(val);
     });
     // Clear button
     this.on('click', '.vinput-clear', (e) => {
@@ -293,8 +313,18 @@ export class VInput extends VelvetComponent {
     });
     // Keyboard support for interactive adornments
     this.on('keydown', '.vinput-clear, .vinput-toggle', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
+      let key = '';
+      if (e && typeof e === 'object') {
+        const code = (typeof e.which === 'number') ? e.which : (typeof e.keyCode === 'number' ? e.keyCode : null);
+        if (code != null) {
+          if (code === 13) key = 'Enter';
+          if (code === 32) key = ' ';
+        } else if ('key' in e && typeof e.key === 'string') {
+          key = e.key;
+        }
+      }
+      if (key === 'Enter' || key === ' ') {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
         try { e.currentTarget.click(); } catch {}
       }
     });

@@ -67,33 +67,57 @@ export class VelvetComponent extends SmoothComponent {
     }
   }
   
-  ripple(event) {
-    const button = event.currentTarget;
-    const rect = button.getBoundingClientRect();
-    const ripple = document.createElement('span');
-    const size = Math.max(rect.width, rect.height);
-    const x = event.clientX - rect.left - size / 2;
-    const y = event.clientY - rect.top - size / 2;
-    
-    ripple.style.width = ripple.style.height = size + 'px';
-    ripple.style.left = x + 'px';
-    ripple.style.top = y + 'px';
-    ripple.className = this.vs({
-      base: {
-        position: 'absolute',
-        borderRadius: '50%',
-        transform: 'scale(0)',
-        background: 'rgba(255, 255, 255, 0.5)',
-        animation: 'ripple 600ms ease-out',
-        pointerEvents: 'none'
+  ripple(arg) {
+    try {
+      // Resolve element and event safely
+      const evt = (arg && typeof arg === 'object' && ('target' in arg || 'currentTarget' in arg)) ? arg : null;
+      let el = null;
+      if (evt) {
+        const t = evt.currentTarget || evt.target;
+        // If click came from inner content, climb to closest button-like element
+        el = (t && t.closest) ? t.closest('button, a[role="button"], [data-ripple-host]') : t;
+      } else if (arg && typeof arg === 'object' && arg.nodeType === 1) {
+        el = arg; // direct element
       }
-    });
-    
-    button.style.position = 'relative';
-    button.style.overflow = 'hidden';
-    button.appendChild(ripple);
-    
-    setTimeout(() => ripple.remove(), 600);
+      if (!el || el.nodeType !== 1) return;
+
+      const rect = el.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      const size = Math.max(rect.width, rect.height) || 0;
+      const cx = (evt && typeof evt.clientX === 'number') ? evt.clientX : (rect.left + rect.width / 2);
+      const cy = (evt && typeof evt.clientY === 'number') ? evt.clientY : (rect.top + rect.height / 2);
+      const x = cx - rect.left - size / 2;
+      const y = cy - rect.top - size / 2;
+
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = x + 'px';
+      ripple.style.top = y + 'px';
+      ripple.className = this.vs({
+        base: {
+          position: 'absolute',
+          borderRadius: '50%',
+          transform: 'scale(0)',
+          background: 'rgba(255, 255, 255, 0.5)',
+          animation: 'ripple 600ms ease-out',
+          pointerEvents: 'none'
+        }
+      });
+
+      // Ensure positioning without breaking existing positioned elements
+      const computedPos = (el && el.ownerDocument && el.ownerDocument.defaultView)
+        ? el.ownerDocument.defaultView.getComputedStyle(el).position
+        : '';
+      if (!computedPos || computedPos === 'static') {
+        el.style.position = 'relative';
+      }
+      el.style.overflow = 'hidden';
+
+      // Use call to avoid illegal invocation in certain wrappers
+      try { Element.prototype.appendChild.call(el, ripple); } catch { el.appendChild(ripple); }
+      setTimeout(() => { try { ripple.remove(); } catch {} }, 600);
+    } catch {
+      // noop fail-safe
+    }
   }
   
   // Helper to merge theme values with custom styles
