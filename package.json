@@ -1,5 +1,5 @@
 {
-  "name": "smoothjs",
+  "name": "@ooyeku/smoothjs",
   "version": "1.0.0",
   "description": "A minimal, lightweight JavaScript framework for building simple frontend applications. Perfect for backend developers who want to quickly build UIs without complex tooling.",
   "license": "MIT",
