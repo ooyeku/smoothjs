@@ -14,20 +14,12 @@ A tiny, batteries‑included JavaScript framework for building simple frontends 
 
 npm
 ```
-npm i smoothjs
-```
-pnpm
-```
-pnpm add smoothjs
+npm i @ooyeku/smoothjs
 ```
 
-yarn
-```
-yarn add smoothjs
-```
 Minimal usage:
 ```
-import SmoothJS, { defineComponent } from 'smoothjs';
+import SmoothJS, { defineComponent } from '@ooyeku/smoothjs';
 const App = defineComponent(({ html }) => {
   const render = () => html`<h1>Hello SmoothJS</h1>`;
   return { render };
@@ -37,7 +29,7 @@ new App().mount('#app');
 CDN:
 ```
 <script type="module">
-  import SmoothJS, { defineComponent } from 'https://unpkg.com/smoothjs@latest/dist/smoothjs.min.js';
+  import SmoothJS, { defineComponent } from 'https://unpkg.com/@ooyeku/smoothjs@latest/dist/smoothjs.min.js';
   const App = defineComponent(({ html }) => ({ render: () => html`<h1>Hello</h1>` }));
   new App().mount('#app');
 </script>
