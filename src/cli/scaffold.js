@@ -339,38 +339,8 @@ export class ProjectScaffold {
 
   // Template generators
   getPackageJsonTemplate() {
-    // Decide how to reference smoothjs:
-    // - If scaffolding inside or alongside the SmoothJS repo, point to the local package with a relative file: path
-    //   • Case A: scaffolding inside repo root => dependency should be file:..
-    //   • Case B: scaffolding from the repo's parent that contains ./smoothjs => dependency should be file:../smoothjs
-    // - Otherwise, fall back to the npm tag "latest" (for when the package is published)
-    let smoothDep = 'latest';
-    try {
-      // Case B: parent contains a 'smoothjs' folder that is a package
-      const siblingSmoothDir = path.join(this.targetDir, 'smoothjs');
-      const siblingPkg = path.join(siblingSmoothDir, 'package.json');
-      if (fsSync.existsSync(siblingPkg)) {
-        const txt = fsSync.readFileSync(siblingPkg, 'utf8');
-        const json = JSON.parse(txt);
-        if (json && json.name === 'smoothjs') {
-          const rel = path.relative(this.projectDir, siblingSmoothDir) || '..';
-          smoothDep = `file:${rel}`;
-        }
-      } else {
-        // Case A: scaffolding directly inside the smoothjs repo root
-        const candidatePkgPath = path.join(this.targetDir, 'package.json');
-        if (fsSync.existsSync(candidatePkgPath)) {
-          const txt = fsSync.readFileSync(candidatePkgPath, 'utf8');
-          const json = JSON.parse(txt);
-          if (json && json.name === 'smoothjs') {
-            // Compute relative path from the new project to the repo root
-            let rel = path.relative(this.projectDir, this.targetDir);
-            if (!rel || rel === '') rel = '..';
-            smoothDep = `file:${rel}`;
-          }
-        }
-      }
-    } catch {}
+    // Always use the npm version for scaffolded projects
+    const smoothDep = 'latest';
 
     return `{
   "name": "${this.projectName}",
@@ -384,7 +354,7 @@ export class ProjectScaffold {
     "test": "vitest"
   },
   "dependencies": {
-    "smoothjs": "${smoothDep}"
+    "@ooyeku/smoothjs": "${smoothDep}"
   },
   "devDependencies": {
     "vite": "^5.0.0",
@@ -458,7 +428,7 @@ ${this.projectName}/
   }
 
   getAppJsTemplate() {
-    return `import { defineComponent, version, Velvet } from 'smoothjs';
+    return `import { defineComponent, version, Velvet } from '@ooyeku/smoothjs';
 import { router } from './router/routes.js';
 
 // Functional root App
@@ -526,7 +496,7 @@ export { NotFound } from './NotFound.js';
   }
 
   getStoresIndexTemplate() {
-    return `import { createStore, createSelector } from 'smoothjs';
+    return `import { createStore, createSelector } from '@ooyeku/smoothjs';
 
 // Example store
 export const counterStore = createStore({ count: 0 });
@@ -741,7 +711,7 @@ temp/`;
   }
 
   getButtonComponentTemplate() {
-    return `import { defineComponent, Velvet } from 'smoothjs';
+    return `import { defineComponent, Velvet } from '@ooyeku/smoothjs';
 
 export const Button = defineComponent((ctx) => {
   const { html, on, props } = ctx;
@@ -760,7 +730,7 @@ export const Button = defineComponent((ctx) => {
   }
 
   getCardComponentTemplate() {
-    return `import { defineComponent } from 'smoothjs';
+    return `import { defineComponent } from '@ooyeku/smoothjs';
 
 export const Card = defineComponent(({ html, props }) => {
   const render = () => html\`
@@ -775,7 +745,7 @@ export const Card = defineComponent(({ html, props }) => {
   }
 
   getHomePageTemplate() {
-    return `import { defineComponent } from 'smoothjs';
+    return `import { defineComponent } from '@ooyeku/smoothjs';
 
 export const HomePage = defineComponent(({ html }) => {
   const render = () => html\`
@@ -801,7 +771,7 @@ export const HomePage = defineComponent(({ html }) => {
   }
 
   getAboutPageTemplate() {
-    return `import { defineComponent } from 'smoothjs';
+    return `import { defineComponent } from '@ooyeku/smoothjs';
 
 export const AboutPage = defineComponent(({ html }) => {
   const render = () => html\`
@@ -814,7 +784,7 @@ export const AboutPage = defineComponent(({ html }) => {
   }
 
   getNotFoundPageTemplate() {
-    return `import { defineComponent } from 'smoothjs';
+    return `import { defineComponent } from '@ooyeku/smoothjs';
 
 export const NotFound = defineComponent(({ html }) => {
   const render = () => html\`
@@ -828,7 +798,7 @@ export const NotFound = defineComponent(({ html }) => {
   }
 
   getCounterStoreTemplate() {
-    return `import { createStore, createSelector } from 'smoothjs';
+    return `import { createStore, createSelector } from '@ooyeku/smoothjs';
 
 // Counter store
 export const counterStore = createStore({ count: 0 });
@@ -859,7 +829,7 @@ export const counterActions = {
   }
 
   getRoutesTemplate() {
-    return `import { Router } from 'smoothjs';
+    return `import { Router } from '@ooyeku/smoothjs';
 import { HomePage } from '../pages/HomePage.js';
 import { AboutPage } from '../pages/AboutPage.js';
 import { NotFound } from '../pages/NotFound.js';
@@ -883,7 +853,7 @@ router
 
   // Template generators for new items
   getComponentTemplate(name) {
-    return `import { Component } from 'smoothjs';
+    return `import { Component } from '@ooyeku/smoothjs';
 
 export class ${name} extends Component {
   constructor() {
@@ -913,7 +883,7 @@ export class ${name} extends Component {
   }
 
   getPageTemplate(name) {
-    return `import { Component } from 'smoothjs';
+    return `import { Component } from '@ooyeku/smoothjs';
 
 export class ${name}Page extends Component {
   constructor() {
@@ -945,7 +915,7 @@ export class ${name}Page extends Component {
   }
 
   getStoreTemplate(name) {
-    return `import { createStore, createSelector } from 'smoothjs';
+    return `import { createStore, createSelector } from '@ooyeku/smoothjs';
 
 // ${name} store
 export const ${name}Store = createStore({
@@ -1018,7 +988,7 @@ export function ${name}Helper() {
   }
 
   getMinimalRoutesTemplate() {
-    return `import { Router } from 'smoothjs';
+    return `import { Router } from '@ooyeku/smoothjs';
 
 // Minimal router with no predefined routes. You can edit router/routes.js later
 // to add routes and pages. This file is created when scaffolding with --skip-examples.

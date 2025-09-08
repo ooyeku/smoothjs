@@ -10,26 +10,26 @@ If you’re just looking for a quick taste, open examples/ in dev and explore. F
 - Install
 ```bash
   npm
-  npm i smoothjs
+  npm i @ooyeku/smoothjs
 
   pnpm
-  pnpm add smoothjs
+  pnpm add @ooyeku/smoothjs
 
   yarn
-  yarn add smoothjs
+  yarn add @ooyeku/smoothjs
 ```
 
 - Minimal Vite/ESM usage
 ```javascript 
-  import SmoothJS, { Component } from 'smoothjs';
+  import { Component } from '@ooyeku/smoothjs';
   class App extends Component { template() { return this.html`<h1>Hello</h1>`; } }
   new App().mount('#app');
 ```
 - CDN (no install)
 ```html
   <script type="module">
-    import SmoothJS, { Component } from 'https://unpkg.com/smoothjs@latest/dist/smoothjs.min.js';
-    class App extends Component { template() { return `<h1>Hello</h1>`; } }
+    import { Component } from 'https://unpkg.com/@ooyeku/smoothjs@latest/dist/smoothjs.min.js';
+    class App extends Component { template() { return this.html`<h1>Hello</h1>`; } }
     new App().mount('#app');
   </script>
 ```
@@ -52,7 +52,7 @@ SmoothJS ships a simple class-based component with a tiny rendering and diffing 
 
 Example:
 ```javascript
-  import { Component, utils } from 'smoothjs';
+  import { Component } from '@ooyeku/smoothjs';
   class Counter extends Component {
     constructor() { super(null, { n: 0 }); }
     onCreate() { this.on('click', '#inc', () => this.setState({ n: this.state.n + 1 })); }
@@ -74,7 +74,7 @@ Children and composition:
 
 Context and portals:
 ```javascript
-  import { Component, createContext } from 'smoothjs';
+  import { Component, createContext } from '@ooyeku/smoothjs';
   const Theme = createContext('light');
   class Provider extends Component {
     onCreate() { this.provideContext(Theme, 'dark'); }
@@ -93,7 +93,7 @@ Error boundaries:
 
 - Throw in template() and implement renderError(err) to show a fallback. onError(err) also runs.
 ```javascript
-  import { defineComponent } from 'smoothjs';
+  import { defineComponent } from '@ooyeku/smoothjs';
   const Safe = defineComponent(({ html, props }) => {
     const render = () => {
       if (props.crash) throw new Error('Boom');
@@ -110,10 +110,10 @@ Focus preservation:
 
 ## Router
 ```javascript
-  import { Router } from 'smoothjs';
-  class Home { template() { return '<div>Home</div>'; } }
-  class Users { template() { return '<div><div data-router-outlet></div></div>'; } }
-  class UserDetail { template() { return `<div>User</div>`; } }
+  import { Router, Component } from '@ooyeku/smoothjs';
+  class Home extends Component { template() { return this.html`<div>Home</div>`; } }
+  class Users extends Component { template() { return this.html`<div><div data-router-outlet></div></div>`; } }
+  class UserDetail extends Component { template() { return this.html`<div>User</div>`; } }
 
   const router = new Router({ mode: 'hash', root: '#app' });
   router
@@ -134,7 +134,7 @@ Focus preservation:
 
 ## Data query layer
 ```javascript
-  import { Query } from 'smoothjs';
+  import { Query } from '@ooyeku/smoothjs';
   const data = await Query.fetch('todos', () => fetch('/api/todos').then(r => r.json()), {
     staleTime: 30000,
     cacheTime: 300000,
@@ -165,7 +165,7 @@ Focus preservation:
 
 ## HTTP client
 ```javascript
-  import { http } from 'smoothjs';
+  import { http } from '@ooyeku/smoothjs';
   const api = http.withBase('/api', { timeout: 5000 });
   const users = await api.get('/users');
   const text = await api.get('/raw.txt', { responseType: 'text' });
@@ -177,7 +177,7 @@ Focus preservation:
 
 ## Store and selectors
 ```javascript
-  import { createStore, createSelector } from 'smoothjs';
+  import { createStore, createSelector } from '@ooyeku/smoothjs';
   const store = createStore({ n: 0 });
   const double = createSelector((s) => s.n, (n) => n * 2);
   const unsub = store.subscribe((s) => console.log('state', s));
@@ -188,7 +188,12 @@ Focus preservation:
 
 ## SSR + Hydration
 ```javascript
-  import { SSR } from 'smoothjs';
+  import { SSR, Component } from '@ooyeku/smoothjs';
+  
+  class App extends Component {
+    template() { return this.html`<div>Count: ${this.state.count}</div>`; }
+  }
+  
   const html = SSR.renderToString(App, { state: { count: 2 }, containerId: 'root' });
   // Send html to client…
   // On client:
@@ -201,7 +206,7 @@ Focus preservation:
 
 ## Design System (Velvet)
 ```javascript
-  import { Velvet } from 'smoothjs';
+  import { Velvet } from '@ooyeku/smoothjs';
   const { VelvetUI } = Velvet;
   // Button
   const btn = new VelvetUI.Button(null, {}, { variant: 'primary', children: 'Click' });
@@ -211,7 +216,10 @@ Focus preservation:
 
   class MyComp extends Velvet.VelvetComponent {
     template() {
-      const className = this.vs({ base: { padding: '1rem', border: '1px solid #e5e7eb' }, dark: { backgroundColor: '#0f1a2b', color: '#fff' } });
+      const className = this.vs({ 
+        base: { padding: '1rem', border: '1px solid #e5e7eb' }, 
+        dark: { backgroundColor: '#0f1a2b', color: '#fff' } 
+      });
       return this.html`<div class="${className}">Hello</div>`;
     }
   }
@@ -222,7 +230,7 @@ Focus preservation:
 
 ## Accessibility utilities
 ```javascript
-  import { A11y } from 'smoothjs';
+  import { A11y } from '@ooyeku/smoothjs';
   const cleanup = A11y.focusTrap('#dialog');
   A11y.announce('Saved', { politeness: 'polite' });
   A11y.createSkipLink('#app');
@@ -232,7 +240,7 @@ Focus preservation:
 
 ## Forms and security
 ```javascript
-  import { Forms, Security } from 'smoothjs';
+  import { Forms, Security } from '@ooyeku/smoothjs';
   const form = Forms.createForm({ email: '' }, { email: (v) => /@/.test(v) ? '' : 'Invalid' });
   form.handleChange({ target: { name: 'email', value: 'a@b.com', type: 'text' } });
   const safe = Security.sanitize('<img src="javascript:alert(1)">Hello');
@@ -240,7 +248,7 @@ Focus preservation:
 
 ## Testing utilities
 ```javascript
-import { Testing } from 'smoothjs';
+import { Testing } from '@ooyeku/smoothjs';
   const { instance, container, unmount } = Testing.mount(MyComp);
   const btn = Testing.getByTestId(container, 'btn');
   Testing.fire(btn, 'click');
@@ -250,7 +258,7 @@ import { Testing } from 'smoothjs';
 
 ## DevTools
 ```javascript
-  import { DevTools } from 'smoothjs';
+  import { DevTools } from '@ooyeku/smoothjs';
   DevTools.enableOverlay();
   DevTools.time('render list', () => renderList());
 ```
@@ -295,7 +303,7 @@ SmoothJS supports functional components via defineComponent(setup). The setup fu
 Example (counter with delegated events):
 
 ```javascript
-import { defineComponent } from 'smoothjs';
+import { defineComponent } from '@ooyeku/smoothjs';
 
 const Counter = defineComponent(({ useState, html, on }) => {
   const [n, setN] = useState(0);
@@ -316,7 +324,7 @@ Hooks available:
 
 Context and portals:
 ```javascript
-import { defineComponent, createContext } from 'smoothjs';
+import { defineComponent, createContext } from '@ooyeku/smoothjs';
 const Theme = createContext('light');
 
 const Demo = defineComponent(({ provideContext, useContext, html, portal, useState, on }) => {
@@ -334,7 +342,7 @@ const Demo = defineComponent(({ provideContext, useContext, html, portal, useSta
 
 Data with useQuery:
 ```javascript
-import { defineComponent, http } from 'smoothjs';
+import { defineComponent, http } from '@ooyeku/smoothjs';
 
 const DataBox = defineComponent(({ useQuery, html }) => {
   const [data, q] = useQuery('todos', () => http.get('/api/todos'), {
@@ -374,7 +382,7 @@ Why: Explicit batching helps for large list updates or transactional state chang
 
 ```javascript
 // Explicit batching for complex flows
-import { Component } from 'smoothjs';
+import { Component } from '@ooyeku/smoothjs';
 
 Component.batch(() => {
   comp.setState({ a: 1 });
@@ -418,7 +426,7 @@ The renderer preserves focus and selection when patching the same input element.
 ```javascript
 // Safe updates: same input node patched -> caret preserved
 // inside a class component's template():
-return '<input id="q" name="q" value="' + (this.state.q || '') + '">';
+return this.html`<input id="q" name="q" value="${this.state.q || ''}">`;
 ```
 Caveats
 - Replacing nodes (e.g., changing data-key or swapping element type) will lose focus; prefer patching attributes.
@@ -427,9 +435,14 @@ Caveats
 
 Local
 ```javascript
-class GlobalErrorBoundary /* extends Component */ {
+import { Component } from '@ooyeku/smoothjs';
+
+class GlobalErrorBoundary extends Component {
   renderError(err) {
-    return '<div class="error">Oops: ' + err.message + '</div>';
+    return this.html`<div class="error">Oops: ${err.message}</div>`;
+  }
+  template() {
+    return this.html`<div>${this.renderChildren()}</div>`;
   }
 }
 ```
@@ -440,7 +453,7 @@ Global boundary pattern: wrap your app and render children; capture errors via o
 Keep a stable portal container across toggles using a custom key.
 ```javascript
 // Keep a stable portal container across toggles (inside a render/template)
-this.portal('#toast-root', () => '<div data-key="toast">' + this.state.msg + '</div>', 'toast');
+this.portal('#toast-root', () => this.html`<div data-key="toast">${this.state.msg}</div>`, 'toast');
 ```
 Portals can accept arrays or a function returning content for deferred rendering.
 
@@ -539,7 +552,7 @@ useEffect(() => {
 ### TypeScript quickstart
 
 ```typescript
-import { Component, defineComponent } from 'smoothjs';
+import { Component, defineComponent } from '@ooyeku/smoothjs';
 
 class TypedCounter extends Component<{ n: number }, {}> {
   constructor() { super(null, { n: 0 }); }
