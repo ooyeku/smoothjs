@@ -12,20 +12,62 @@ export class VelvetComponent extends SmoothComponent {
     super(element, initialState, props);
     this.v = new Velvet(this);
     this.theme = defaultTheme;
+    // Per-instance caches to avoid repeated work across renders
+    this._vsCacheStr = new Map();   // utility tokens -> className
+    this._vsCacheObj = new WeakMap(); // style object identity -> className
+    this._themeCache = new Map();   // "tokens.colors.primary.500" -> resolved value
+  }
+
+  // Compose classes efficiently; accepts strings/arrays/falsy
+  cx(...parts) {
+    let out = '';
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (!p) continue;
+      if (typeof p === 'string') {
+        if (out) out += ' ';
+        out += p;
+      } else if (Array.isArray(p)) {
+        for (let j = 0; j < p.length; j++) {
+          const s = p[j];
+          if (!s) continue;
+          if (out) out += ' ';
+          out += s;
+        }
+      }
+    }
+    return out;
   }
   
   vs(styles) {
+    // Fast path: string utilities/presets (cache per token)
     if (typeof styles === 'string') {
-      // Handle utility classes or preset styles
-      const classes = styles.split(' ');
-      return classes.map(cls => {
-        // Check if it's a utility class
+      // Tokenize once; map through utilities; cache each token
+      const classes = styles.split(' ').filter(Boolean).map(cls => {
+        // Cached token resolution
+        const cached = this._vsCacheStr.get(cls);
+        if (cached) return cached;
+        // Check if it's a utility class backed by Velvet utilities
         if (this.v.utilities && this.v.utilities[cls]) {
-          return this.v.style({ base: this.v.utilities[cls] });
+          const resolved = this.v.style({ base: this.v.utilities[cls] });
+          this._vsCacheStr.set(cls, resolved);
+          return resolved;
         }
+        // Pass-through raw class token; cache to avoid future checks
+        this._vsCacheStr.set(cls, cls);
         return cls;
-      }).join(' ');
+      });
+      return classes.join(' ');
     }
+    // Object/array styles: cache by object identity (works best with stable objects)
+    if (styles && (typeof styles === 'object' || Array.isArray(styles))) {
+      const cached = this._vsCacheObj.get(styles);
+      if (cached) return cached;
+      const className = this.v.style(styles);
+      this._vsCacheObj.set(styles, className);
+      return className;
+    }
+    // Fallback
     return this.v.style(styles);
   }
   
@@ -33,42 +75,101 @@ export class VelvetComponent extends SmoothComponent {
     const className = this.vs(styles);
     const propsStr = Object.entries(props)
       .map(([key, value]) => {
-        if (key === 'onclick' || key.startsWith('on')) {
-          return '';
-        }
-        return `${key}="${value}"`;
+        // Skip event handlers; they should be bound via .on()
+        if (key === 'onclick' || key.startsWith('on')) return '';
+        if (value === false || value == null) return ''; // omit falsy boolean/null/undefined
+        if (value === true) return `${key}`; // boolean attribute shorthand
+        return `${key}="${String(value)}"`;
       })
+      .filter(Boolean)
       .join(' ');
     
-    return `<${tag} class="${className}" ${propsStr}>`;
+    // Avoid trailing space if no props
+    return propsStr
+      ? `<${tag} class="${className}" ${propsStr}>`
+      : `<${tag} class="${className}">`;
   }
   
   styledClose(tag) {
     return `</${tag}>`;
   }
   
+  // Allow swapping theme at runtime and reset caches that depend on theme
+  setTheme(nextTheme) {
+    if (nextTheme && nextTheme !== this.theme) {
+      this.theme = nextTheme;
+      // Theme-based caches are now stale
+      this._themeCache.clear();
+      // style caches might also depend on theme tokens; conservatively clear string cache
+      this._vsCacheStr.clear();
+    }
+  }
+  
+  // Detect reduced motion preference once per callsite
+  _prefersReducedMotion() {
+    try {
+      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch {
+      return false;
+    }
+  }
+
   animate(element, animation, options = {}) {
     const {
-      duration = '250ms',
+      duration = 250,
       easing = 'ease',
-      delay = '0ms',
-      fillMode = 'both'
+      delay = 0,
+      fillMode = 'both',
+      iterations = 1,
+      direction = 'normal'
     } = options;
     
     if (typeof element === 'string') {
-      element = this.element.querySelector(element);
+      element = this.element && this.element.querySelector ? this.element.querySelector(element) : null;
     }
-    
     if (!element) return;
-    
-    element.style.animation = `${animation} ${duration} ${easing} ${delay} ${fillMode}`;
-    
-    if (options.onComplete) {
-      const handleEnd = () => {
-        element.removeEventListener('animationend', handleEnd);
-        options.onComplete();
-      };
-      element.addEventListener('animationend', handleEnd);
+
+    // Respect reduced motion
+    if (this._prefersReducedMotion()) {
+      if (options.onComplete) {
+        try { options.onComplete(); } catch {}
+      }
+      return;
+    }
+
+    // If a keyframes object/array is provided, prefer WAAPI for perf and compositing
+    const isKeyframes = Array.isArray(animation) || (animation && typeof animation === 'object' && !('trim' in animation));
+    if (element.animate && isKeyframes) {
+      try {
+        const anim = element.animate(animation, {
+          duration,
+          easing,
+          delay,
+          fill: fillMode,
+          iterations,
+          direction
+        });
+        if (options.onComplete) {
+          anim.finished.then(() => { try { options.onComplete(); } catch {} }).catch(() => {});
+        }
+        return;
+      } catch {
+        // fall through to CSS string fallback
+      }
+    }
+
+    // Fallback: treat animation as a CSS keyframe name string
+    if (typeof animation === 'string') {
+      const d = (typeof duration === 'number') ? `${duration}ms` : duration;
+      const dl = (typeof delay === 'number') ? `${delay}ms` : delay;
+      element.style.animation = `${animation} ${d} ${easing} ${dl} ${fillMode} ${iterations} ${direction}`;
+      if (options.onComplete) {
+        const handleEnd = () => {
+          element.removeEventListener('animationend', handleEnd);
+          try { options.onComplete(); } catch {}
+        };
+        element.addEventListener('animationend', handleEnd);
+      }
     }
   }
   
@@ -79,7 +180,6 @@ export class VelvetComponent extends SmoothComponent {
       let el = null;
       if (evt) {
         const t = evt.currentTarget || evt.target;
-        // If click came from inner content, climb to closest button-like element
         el = (t && t.closest) ? t.closest('button, a[role="button"], [data-ripple-host]') : t;
       } else if (arg && typeof arg === 'object' && arg.nodeType === 1) {
         el = arg; // direct element
@@ -87,26 +187,11 @@ export class VelvetComponent extends SmoothComponent {
       if (!el || el.nodeType !== 1) return;
 
       const rect = el.getBoundingClientRect();
-      const ripple = document.createElement('span');
       const size = Math.max(rect.width, rect.height) || 0;
       const cx = (evt && typeof evt.clientX === 'number') ? evt.clientX : (rect.left + rect.width / 2);
       const cy = (evt && typeof evt.clientY === 'number') ? evt.clientY : (rect.top + rect.height / 2);
       const x = cx - rect.left - size / 2;
       const y = cy - rect.top - size / 2;
-
-      ripple.style.width = ripple.style.height = size + 'px';
-      ripple.style.left = x + 'px';
-      ripple.style.top = y + 'px';
-      ripple.className = this.vs({
-        base: {
-          position: 'absolute',
-          borderRadius: '50%',
-          transform: 'scale(0)',
-          background: 'rgba(255, 255, 255, 0.5)',
-          animation: 'ripple 600ms ease-out',
-          pointerEvents: 'none'
-        }
-      });
 
       // Ensure positioning without breaking existing positioned elements
       const computedPos = (el && el.ownerDocument && el.ownerDocument.defaultView)
@@ -117,9 +202,44 @@ export class VelvetComponent extends SmoothComponent {
       }
       el.style.overflow = 'hidden';
 
-      // Use call to avoid illegal invocation in certain wrappers
+      const ripple = document.createElement('span');
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = x + 'px';
+      ripple.style.top = y + 'px';
+      ripple.className = this.vs({
+        base: {
+          position: 'absolute',
+          borderRadius: '50%',
+          transform: 'scale(0)',
+          willChange: 'transform, opacity',
+          background: 'rgba(255, 255, 255, 0.5)',
+          pointerEvents: 'none'
+        }
+      });
+
+      // Prefer WAAPI for better perf; fallback to CSS animation keyframes name "ripple"
+      if (ripple.animate) {
+        try {
+          el.appendChild(ripple);
+          const anim = ripple.animate(
+            [
+              { transform: 'scale(0)', opacity: 0.35 },
+              { transform: 'scale(1)', opacity: 0 }
+            ],
+            { duration: 600, easing: 'ease-out', fill: 'forwards' }
+          );
+          anim.finished.then(() => { try { ripple.remove(); } catch {} }).catch(() => { try { ripple.remove(); } catch {} });
+          return;
+        } catch {
+          // fall through
+        }
+      }
+
+      ripple.className += ' ' + this.vs({ base: { animation: 'ripple 600ms ease-out forwards' } });
       try { Element.prototype.appendChild.call(el, ripple); } catch { el.appendChild(ripple); }
-      setTimeout(() => { try { ripple.remove(); } catch {} }, 600);
+      const remove = () => { try { ripple.remove(); } catch {} };
+      ripple.addEventListener('animationend', remove, { once: true });
+      setTimeout(remove, 700);
     } catch {
       // noop fail-safe
     }
@@ -132,12 +252,20 @@ export class VelvetComponent extends SmoothComponent {
   }
   
   getThemeValue(path) {
+    if (!path) return {};
+    const cached = this._themeCache.get(path);
+    if (cached !== undefined) return cached;
     const keys = path.split('.');
     let value = this.theme;
     for (const key of keys) {
-      value = value[key];
-      if (value === undefined) return {};
+      value = value && value[key];
+      if (value === undefined) {
+        this._themeCache.set(path, {});
+        return {};
+      }
     }
+    // Cache resolved value (shallow, non-reactive)
+    this._themeCache.set(path, value);
     return value;
   }
   
