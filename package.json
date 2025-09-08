@@ -43,10 +43,8 @@
     "dev:counter": "vite --mode counter",
     "dev:forms": "vite --mode forms",
     "build": "vite build",
-    "preview": "vite preview --open",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "coverage": "vitest run --coverage"
+    "test:watch": "vitest"
   },
   "keywords": [
     "javascript",
