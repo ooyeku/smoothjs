@@ -22,6 +22,7 @@ export const HomePage = defineComponent(({ html }) => {
           { href: '#/composition', title: 'Composition', desc: 'Context, portals, and children demos' },
           { href: '#/mutations', title: 'Mutations', desc: 'Optimistic updates, rollback, and invalidation' },
           { href: '#/forms', title: 'Forms', desc: 'Validation helpers + sanitized preview' },
+          { href: '#/datatable', title: 'DataTable', desc: 'Sortable tables with selection and custom rendering' },
           { href: '#/design', title: 'Design System', desc: 'Buttons, Inputs, Modal, Tabs (a11y)'},
           { href: '#/error', title: 'Error Boundaries', desc: 'Error boundary fallback demo' },
           { href: '#/about', title: 'About', desc: 'Utilities, formatters, and version info' }
