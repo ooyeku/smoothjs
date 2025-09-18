@@ -5,7 +5,6 @@
 
 import { defineComponent } from '../functional/defineComponent.js';
 import { 
-  createVNode, 
   createElement, 
   createText, 
   createFragment,
@@ -47,7 +46,9 @@ export function defineComponentVDOM(setup) {
      * @param {boolean} enabled - Whether to enable virtual DOM
      */
     setVDOMEnabled(enabled) {
-      this._vdomEnabled = enabled;
+      this._vdomEnabled = !!enabled;
+      // Trigger immediate re-render to reflect mode change
+      try { if (this.element) this.render(); } catch {}
     }
 
     /**
@@ -81,9 +82,9 @@ export function defineComponentVDOM(setup) {
           onError: res.onError,
           renderError: res.renderError
         };
-        if (typeof res.renderError === 'function') {
-          this.renderError = function(err) { return res.renderError.call(this, err); };
-        }
+      }
+      if (typeof res.renderError === 'function') {
+        this.renderError = function(err) { return res.renderError.call(this, err); };
       }
       
       // Try virtual DOM render first, then fall back to HTML render
@@ -170,29 +171,28 @@ export function defineComponentVDOM(setup) {
      * Renders using virtual DOM
      */
     _renderWithVDOM() {
-      // Get virtual DOM from template
-      const newVDOM = this.template();
-      
-      // Ensure we have a virtual node
-      if (!newVDOM || typeof newVDOM !== 'object' || !newVDOM.type) {
-        // Convert HTML string to virtual nodes if needed
-        if (typeof newVDOM === 'string') {
-          const vnodes = htmlToVNodes(newVDOM);
-          const vdom = vnodes.length === 1 ? vnodes[0] : createFragment(vnodes);
-          this._mountVDOM(vdom);
-          this._vdom = vdom;
-          return;
-        }
-        
-        // Fallback to text node
-        const vdom = createText(String(newVDOM || ''));
-        this._mountVDOM(vdom);
-        this._vdom = vdom;
-        return;
+      // Build virtual DOM from setup/template output
+      let output = this.template();
+      let newVDOM = output;
+
+      // Normalize to VDOM
+      if (newVDOM == null) {
+        newVDOM = createFragment([]);
+      } else if (typeof newVDOM === 'string') {
+        const vnodes = htmlToVNodes(newVDOM);
+        newVDOM = vnodes.length === 1 ? vnodes[0] : createFragment(vnodes);
+      } else if (newVDOM && typeof newVDOM === 'object' && typeof newVDOM.nodeType === 'number') {
+        newVDOM = this._domToVNode(newVDOM) || createText('');
+      }
+
+      // Validate vnode shape; coerce unknown to text
+      if (!newVDOM || typeof newVDOM !== 'object' || !('type' in newVDOM) || !(['element','text','fragment'].includes(newVDOM.type))) {
+        newVDOM = createText(String(newVDOM ?? ''));
       }
       
-      // For now, always remount to avoid DOM reference issues
-      this._mountVDOM(newVDOM);
+      // Diff and patch against previous VDOM
+      const oldVDOM = this._vdom;
+      this._patchVDOM(oldVDOM, newVDOM);
       this._vdom = newVDOM;
     }
 
@@ -207,7 +207,7 @@ export function defineComponentVDOM(setup) {
         container.innerHTML = '';
       } else if (typeof html === 'string') {
         container.innerHTML = html;
-      } else if (html instanceof Node) {
+      } else if (html && typeof html === 'object' && typeof html.nodeType === 'number') {
         container.appendChild(html.cloneNode(true));
       } else {
         container.textContent = String(html);
@@ -288,7 +288,9 @@ export function defineComponentVDOM(setup) {
       
       switch (vnode.type) {
         case 'text':
-          return document.createTextNode(vnode.text);
+          const tn = document.createTextNode(vnode.text);
+          vnode.el = tn;
+          return tn;
           
         case 'element':
           const el = document.createElement(vnode.tag);
@@ -369,12 +371,16 @@ export function defineComponentVDOM(setup) {
         } else if (typeof child === 'string' || typeof child === 'number') {
           // Convert primitives to text nodes
           result.push(createText(child));
-        } else if (child && typeof child === 'object' && child.type) {
-          // Already a virtual node
+        } else if (
+          child && typeof child === 'object' &&
+          (child.type === 'element' || child.type === 'text' || child.type === 'fragment')
+        ) {
+          // Already a virtual node (recognized shape)
           result.push(child);
-        } else if (child instanceof Node) {
-          // Convert DOM node to virtual node
-          result.push(this._domToVNode(child));
+        } else if (child && typeof child === 'object' && typeof child.nodeType === 'number') {
+          // Convert DOM node to virtual node (duck-typed to avoid Node global)
+          const vn = this._domToVNode(child);
+          if (vn) result.push(vn);
         } else {
           // Convert other values to text
           result.push(createText(String(child)));
@@ -390,14 +396,17 @@ export function defineComponentVDOM(setup) {
      * @returns {Object} Virtual node
      */
     _domToVNode(node) {
-      if (node.nodeType === Node.TEXT_NODE) {
+      // Use numeric nodeType codes to avoid referencing global Node in non-browser envs
+      if (!node || typeof node.nodeType !== 'number') return null;
+
+      if (node.nodeType === 3) { // TEXT_NODE
         return createText(node.textContent);
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
+      } else if (node.nodeType === 1) { // ELEMENT_NODE
         const props = {};
         const children = [];
         
         // Extract attributes
-        Array.from(node.attributes).forEach(attr => {
+        Array.from(node.attributes || []).forEach(attr => {
           if (attr.name === 'class') {
             props.className = attr.value;
           } else if (attr.name.startsWith('data-')) {
@@ -408,21 +417,22 @@ export function defineComponentVDOM(setup) {
           }
         });
         
-        // Extract key
-        const key = node.getAttribute('data-key');
-        if (key) {
-          props.key = key;
-        }
+        // Extract key (do not duplicate in props to avoid conflicts)
+        const key = node.getAttribute && node.getAttribute('data-key');
         
         // Process children
-        Array.from(node.childNodes).forEach(child => {
-          children.push(this._domToVNode(child));
+        Array.from(node.childNodes || []).forEach(child => {
+          const vn = this._domToVNode(child);
+          if (vn) children.push(vn);
         });
         
-        return createElement(node.tagName.toLowerCase(), props, children, key);
+        return createElement(node.tagName.toLowerCase(), props, children, key || null);
+      } else if (node.nodeType === 8) { // COMMENT_NODE
+        // Ignore comments to avoid spurious empty text nodes
+        return null;
       }
       
-      return createText('');
+      return null;
     }
 
     /**
@@ -433,12 +443,18 @@ export function defineComponentVDOM(setup) {
       try {
         const active = document.activeElement;
         if (active && this.element.contains(active)) {
+          const tag = (active.tagName || '').toUpperCase();
+          const isInputLike = tag === 'INPUT' || tag === 'TEXTAREA';
           return {
             id: active.id || null,
             name: active.getAttribute ? active.getAttribute('name') : null,
             isContentEditable: !!active.isContentEditable,
-            selectionStart: (typeof active.selectionStart === 'number') ? active.selectionStart : null,
-            selectionEnd: (typeof active.selectionEnd === 'number') ? active.selectionEnd : null
+            isInputLike,
+            selectionStart: isInputLike && (typeof active.selectionStart === 'number') ? active.selectionStart : null,
+            selectionEnd: isInputLike && (typeof active.selectionEnd === 'number') ? active.selectionEnd : null,
+            selectionDirection: isInputLike && typeof active.selectionDirection === 'string' ? active.selectionDirection : null,
+            scrollLeft: typeof active.scrollLeft === 'number' ? active.scrollLeft : null,
+            scrollTop: typeof active.scrollTop === 'number' ? active.scrollTop : null
           };
         }
       } catch {}
@@ -463,10 +479,35 @@ export function defineComponentVDOM(setup) {
       if (target) {
         try {
           target.focus();
-          if (focusInfo.isContentEditable && typeof target.setSelectionRange === 'function') {
+          const tag = (target.tagName || '').toUpperCase();
+          const isInputLike = tag === 'INPUT' || tag === 'TEXTAREA';
+          // Restore selection for input/textarea
+          if (isInputLike && typeof target.setSelectionRange === 'function') {
             if (focusInfo.selectionStart != null && focusInfo.selectionEnd != null) {
-              target.setSelectionRange(focusInfo.selectionStart, focusInfo.selectionEnd);
+              try {
+                target.setSelectionRange(
+                  focusInfo.selectionStart,
+                  focusInfo.selectionEnd,
+                  focusInfo.selectionDirection || undefined
+                );
+              } catch {}
             }
+            if (typeof focusInfo.scrollLeft === 'number') target.scrollLeft = focusInfo.scrollLeft;
+            if (typeof focusInfo.scrollTop === 'number') target.scrollTop = focusInfo.scrollTop;
+          } else if (focusInfo.isContentEditable) {
+            // Basic caret restore for contentEditable using Selection/Range APIs
+            const sel = (typeof window !== 'undefined' && window.getSelection) ? window.getSelection() : null;
+            if (sel && typeof document.createRange === 'function') {
+              const range = document.createRange();
+              try {
+                range.selectNodeContents(target);
+                range.collapse(false); // place caret at end
+                sel.removeAllRanges();
+                sel.addRange(range);
+              } catch {}
+            }
+            if (typeof focusInfo.scrollLeft === 'number') target.scrollLeft = focusInfo.scrollLeft;
+            if (typeof focusInfo.scrollTop === 'number') target.scrollTop = focusInfo.scrollTop;
           }
         } catch {}
       }
