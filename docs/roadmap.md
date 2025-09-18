@@ -1,36 +1,44 @@
 ## SmoothJS Improvement Proposals
 
-### 1. **Performance Optimizations**
+### 1. **Performance Optimizations** ✅ **IMPLEMENTED**
 
-#### **Virtual DOM Diffing Enhancement**
-- **Current**: Basic DOM patching with direct element replacement
-- **Improvement**: Implement a lightweight virtual DOM diffing algorithm
+#### **Virtual DOM Diffing Enhancement** ✅ **COMPLETED**
+- **Status**: ✅ **IMPLEMENTED** - Full virtual DOM system in `src/vdom/`
+- **Features**: Lightweight diffing algorithm with keyed reconciliation
 - **Benefit**: Reduces unnecessary DOM manipulations, especially for large lists
-- **API Compatible**: Yes - internal optimization
+- **API Compatible**: Yes - works alongside existing components
 
 ```javascript
-// Add to SmoothComponent.js
-static _createVNode(element, props, children) {
-  return { type: 'element', tag: element.tagName, props, children, el: element };
+// Implemented in src/vdom/index.js
+export function patchNode(parent, oldVNode, newVNode, index = 0) {
+  // Efficient diffing algorithm
+  // Only update changed attributes and children
 }
 
-static _diff(oldVNode, newVNode) {
-  // Lightweight diffing algorithm
-  // Only update changed attributes and children
+export function patchChildren(parent, oldChildren, newChildren) {
+  // Keyed reconciliation for optimal performance
 }
 ```
 
-#### **Batch State Updates**
-- **Current**: Individual state updates trigger immediate re-renders
-- **Improvement**: Enhanced batching with microtask scheduling
+#### **Batch State Updates** ✅ **COMPLETED**
+- **Status**: ✅ **IMPLEMENTED** - Enhanced batching with microtask scheduling
+- **Features**: `SmoothComponent.batch()` with `_batchDepth` and `_scheduleFlush()`
 - **Benefit**: Prevents multiple re-renders during rapid state changes
 - **API Compatible**: Yes - internal optimization
 
-#### **Memoization for Expensive Computations**
-- **Current**: `useMemo` exists but could be enhanced
-- **Improvement**: Add automatic memoization for template functions
-- **Benefit**: Prevents unnecessary template re-computations
-- **API Compatible**: Yes - internal optimization
+#### **Memoization for Expensive Computations** ⚠️ **PARTIALLY IMPLEMENTED**
+- **Status**: ⚠️ **PARTIAL** - `useMemo` hook available, automatic template memoization removed
+- **Features**: `useMemo` hook for manual memoization of expensive computations
+- **Benefit**: Developers can manually optimize expensive computations
+- **API Compatible**: Yes - `useMemo` hook available in functional components
+- **Note**: Automatic template memoization was removed due to state update issues
+
+```javascript
+// Available in functional components
+const expensiveValue = useMemo(() => {
+  return computeExpensiveValue(a, b);
+}, [a, b]);
+```
 
 ### 2. **Developer Experience Enhancements**
 

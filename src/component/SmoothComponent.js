@@ -73,6 +73,7 @@ export class SmoothComponent {
     }
   }
 
+
   constructor(element = null, initialState = {}, props = {}) {
     this.element = element;
     this.state = { ...initialState };
@@ -410,6 +411,7 @@ export class SmoothComponent {
 
     try {
       this.isRendering = true;
+      
       const html = this.template();
       // Build a temporary container for the new content
       const container = document.createElement('div');
