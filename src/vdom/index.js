@@ -142,7 +142,9 @@ export function createDOMNode(vnode) {
   
   switch (vnode.type) {
     case 'text':
-      return document.createTextNode(vnode.text);
+      const tn = document.createTextNode(vnode.text);
+      vnode.el = tn;
+      return tn;
       
     case 'element':
       const el = document.createElement(vnode.tag);
@@ -290,8 +292,9 @@ export function patchNode(parent, oldVNode, newVNode, index = 0) {
   
   if (oldVNode && !newVNode) {
     // Remove old node
-    if (oldVNode.el && oldVNode.el.parentNode) {
-      oldVNode.el.parentNode.removeChild(oldVNode.el);
+    const nodeToRemove = (oldVNode && oldVNode.el) ? oldVNode.el : (parent.childNodes[index] || null);
+    if (nodeToRemove && nodeToRemove.parentNode) {
+      nodeToRemove.parentNode.removeChild(nodeToRemove);
     }
     return;
   }
@@ -299,8 +302,13 @@ export function patchNode(parent, oldVNode, newVNode, index = 0) {
   if (!sameType(oldVNode, newVNode)) {
     // Replace node
     const newNode = createDOMNode(newVNode);
-    if (oldVNode.el && newNode) {
+    if (!newNode) return;
+    if (oldVNode.el) {
       oldVNode.el.parentNode.replaceChild(newNode, oldVNode.el);
+    } else {
+      const refNode = parent.childNodes[index] || null;
+      if (refNode) parent.replaceChild(newNode, refNode);
+      else parent.appendChild(newNode);
     }
     return;
   }
@@ -310,16 +318,19 @@ export function patchNode(parent, oldVNode, newVNode, index = 0) {
     if (oldVNode.text !== newVNode.text) {
       if (oldVNode.el) {
         oldVNode.el.textContent = newVNode.text;
+        newVNode.el = oldVNode.el;
       } else {
-        // If old node doesn't have DOM reference, create new one
+        // If old node doesn't have DOM reference, replace at index
         const newNode = createDOMNode(newVNode);
-        if (newNode) {
-          const refNode = parent.childNodes[0] || null;
-          parent.insertBefore(newNode, refNode);
-        }
+        const target = parent.childNodes[index] || null;
+        if (target) parent.replaceChild(newNode, target);
+        else parent.appendChild(newNode);
+        newVNode.el = newNode;
       }
+    } else {
+      // Text equal, carry over el if present
+      newVNode.el = oldVNode.el || (parent.childNodes[index] || null);
     }
-    newVNode.el = oldVNode.el;
     return;
   }
   
@@ -330,11 +341,12 @@ export function patchNode(parent, oldVNode, newVNode, index = 0) {
       patchChildren(oldVNode.el, oldVNode.children, newVNode.children);
       newVNode.el = oldVNode.el;
     } else {
-      // If old node doesn't have DOM reference, create new one
+      // If old node doesn't have DOM reference, replace at index
       const newNode = createDOMNode(newVNode);
       if (newNode) {
-        const refNode = parent.childNodes[0] || null;
-        parent.insertBefore(newNode, refNode);
+        const refNode = parent.childNodes[index] || null;
+        if (refNode) parent.replaceChild(newNode, refNode);
+        else parent.appendChild(newNode);
       }
     }
     return;
@@ -438,11 +450,9 @@ function patchChildrenUnkeyed(parent, oldChildren, newChildren) {
     patchNode(parent, null, newChildren[i], i);
   }
   
-  // Remove old children
-  for (let i = minLen; i < oldChildren.length; i++) {
-    if (oldChildren[i].el && oldChildren[i].el.parentNode) {
-      oldChildren[i].el.parentNode.removeChild(oldChildren[i].el);
-    }
+  // Remove extra trailing nodes if any
+  while (parent.childNodes.length > newChildren.length) {
+    parent.removeChild(parent.lastChild);
   }
 }
 

@@ -29,6 +29,19 @@ export function defineComponentVDOM(setup) {
       this._vdomEnabled = true; // Enable/disable virtual DOM
     }
 
+    // Ensure immediate flush for VDOM hook state updates
+    _useState(initial) {
+      const [value, set] = super._useState(initial);
+      const self = this;
+      const wrappedSet = (next) => {
+        set(next);
+        if (self._vdomEnabled) {
+          try { self.constructor._flush && self.constructor._flush(); } catch {}
+        }
+      };
+      return [value, wrappedSet];
+    }
+
     /**
      * Enable or disable virtual DOM
      * @param {boolean} enabled - Whether to enable virtual DOM
@@ -46,10 +59,9 @@ export function defineComponentVDOM(setup) {
       
       // Add virtual DOM helpers to context
       ctx.h = (tag, props = {}, ...children) => {
-        const key = props.key || null;
-        delete props.key;
+        const { key = null, ...rest } = props || {};
         const vChildren = this._flattenChildren(children);
-        return createElement(tag, props, vChildren, key);
+        return createElement(tag, rest, vChildren, key);
       };
       
       ctx.t = (text) => createText(text);
