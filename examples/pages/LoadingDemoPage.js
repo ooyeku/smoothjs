@@ -1,7 +1,7 @@
-import { defineComponent } from '../../index.js';
+import { defineComponentVDOM } from '../../src/vdom/defineComponentVDOM.js';
 
 // Loading Demo Route Component (functional)
-export const LoadingDemoPage = defineComponent(({ html }) => {
+export const LoadingDemoPage = defineComponentVDOM(({ html }) => {
   const render = () => html`
       <div style="max-width: 960px; margin: 0 auto; padding: 0.75rem 1rem;">
         <div style="background: white; border-radius: 12px; padding: 1rem 1.25rem; box-shadow: 0 10px 20px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.08); border: 1px solid #e5e7eb;">

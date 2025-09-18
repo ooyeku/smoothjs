@@ -1,9 +1,9 @@
-import { defineComponent } from '../../index.js';
+import { defineComponentVDOM } from '../../src/vdom/defineComponentVDOM.js';
 import { ContextDemo } from '../components/ContextDemo.js';
 import { PortalDemo } from '../components/PortalDemo.js';
 import { ChildrenDemo } from '../components/ChildrenDemo.js';
 
-export const CompositionPage = defineComponent(({ html, find }) => {
+export const CompositionPage = defineComponentVDOM(({ html, find }) => {
   let _ctx = null, _portal = null, _children = null;
 
   const onMount = () => {

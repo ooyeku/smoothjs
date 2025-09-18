@@ -1,7 +1,8 @@
-import { defineComponent, Query } from '../../index.js';
+import { defineComponentVDOM } from '../../src/vdom/defineComponentVDOM.js';
+import { Query } from '../../index.js';
 
 // Mutations Demo Page showing optimistic updates + rollback and tag invalidation (functional)
-export const MutationsPage = defineComponent(({ html, on, useState }) => {
+export const MutationsPage = defineComponentVDOM(({ html, on, useState }) => {
   const [todosKey] = useState('todos');
   const [input, setInput] = useState('');
   const [error, setError] = useState(null);

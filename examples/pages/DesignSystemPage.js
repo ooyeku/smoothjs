@@ -1,6 +1,7 @@
-import { defineComponent, Velvet } from '../../index.js';
+import { defineComponentVDOM } from '../../src/vdom/defineComponentVDOM.js';
+import { Velvet } from '../../index.js';
 
-export const DesignSystemPage = defineComponent(({ html, on, useState, useEffect, find }) => {
+export const DesignSystemPage = defineComponentVDOM(({ html, on, useState, useEffect, find }) => {
   const { VelvetUI } = Velvet;
   const [modalOpen, setModalOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -14,9 +15,9 @@ export const DesignSystemPage = defineComponent(({ html, on, useState, useEffect
     const b1Host = find('#btn1');
     const b2Host = find('#btn2');
     const b3Host = find('#btn3');
-    btn1 = new VelvetUI.Button(null, {}, { variant: 'primary', children: 'Primary', startIcon: '★', endIcon: '→', onClick: () => console.log('Primary clicked') });
+    btn1 = new VelvetUI.Button(null, {}, { variant: 'primary', children: 'Primary', onClick: () => console.log('Primary clicked') });
     btn2 = new VelvetUI.Button(null, {}, { variant: 'secondary', children: 'Loading', loading: true, loadingText: 'Please wait' });
-    btn3 = new VelvetUI.Button(null, {}, { variant: 'ghost', children: 'External', href: 'https://example.com', target: '_blank', endIcon: '↗' });
+    btn3 = new VelvetUI.Button(null, {}, { variant: 'ghost', children: 'External', href: 'https://example.com', target: '_blank' });
     if (b1Host) btn1.mount(b1Host);
     if (b2Host) btn2.mount(b2Host);
     if (b3Host) btn3.mount(b3Host);
@@ -28,8 +29,6 @@ export const DesignSystemPage = defineComponent(({ html, on, useState, useEffect
       value: inputValue,
       helperText: 'We will echo your text below.',
       clearable: true,
-      startIcon: '🔎',
-      endIcon: '⌨',
       validate: (v) => (v && v.length < 3 ? 'Min 3 characters' : ''),
       onInput: (e) => setInputValue((e && e.currentTarget && typeof e.currentTarget.value==='string') ? e.currentTarget.value : (e && e.target && typeof e.target.value==='string' ? e.target.value : ''))
     });

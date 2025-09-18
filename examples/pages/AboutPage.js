@@ -1,7 +1,8 @@
-import { defineComponent, version, utils } from '../../index.js';
+import { defineComponentVDOM } from '../../src/vdom/defineComponentVDOM.js';
+import { version, utils } from '../../index.js';
 
 // About Page (functional)
-export const AboutPage = defineComponent(({ html }) => {
+export const AboutPage = defineComponentVDOM(({ html }) => {
   const render = () => {
     const now = new Date();
     return html`

@@ -1,7 +1,7 @@
-import { defineComponent } from '../../index.js';
+import { defineComponentVDOM } from '../../src/vdom/defineComponentVDOM.js';
 import { DataTable } from '../components/DataTable.js';
 
-export const DataTablePage = defineComponent(({ html, useState, on }) => {
+export const DataTablePage = defineComponentVDOM(({ html, useState, on }) => {
   // Sample data for different table examples
   const sampleUsers = [
     { id: 1, name: 'Alice Johnson', email: 'alice@example.com', role: 'Admin', status: 'Active', joinDate: '2023-01-15', score: 95 },
@@ -232,9 +232,40 @@ export const DataTablePage = defineComponent(({ html, useState, on }) => {
           font-weight: 500;
         }
         
-        .status-active { background: #dcfce7; color: #166534; }
-        .status-inactive { background: #fee2e2; color: #991b1b; }
-        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-active { 
+          background: #dcfce7; 
+          color: #166534; 
+          border: 1px solid #bbf7d0;
+        }
+        .status-inactive { 
+          background: #fee2e2; 
+          color: #991b1b; 
+          border: 1px solid #fecaca;
+        }
+        .status-pending { 
+          background: #fef3c7; 
+          color: #92400e; 
+          border: 1px solid #fde68a;
+        }
+        
+        /* Dark mode status indicators */
+        @media (prefers-color-scheme: dark) {
+          .status-active { 
+            background: #166534; 
+            color: #dcfce7; 
+            border: 1px solid #22c55e;
+          }
+          .status-inactive { 
+            background: #991b1b; 
+            color: #fee2e2; 
+            border: 1px solid #ef4444;
+          }
+          .status-pending { 
+            background: #92400e; 
+            color: #fef3c7; 
+            border: 1px solid #f59e0b;
+          }
+        }
         
         .score-bar {
           position: relative;

@@ -178,10 +178,20 @@ function setElementProps(el, props) {
   if (!props || typeof props !== 'object') return;
   
   Object.entries(props).forEach(([key, value]) => {
+    // Skip invalid attribute names
+    if (!key || typeof key !== 'string') return;
+    
     if (key === 'style' && value && typeof value === 'object') {
       Object.assign(el.style, value);
     } else if (key === 'dataset' && value && typeof value === 'object') {
-      Object.assign(el.dataset, value);
+      // Handle dataset properties safely, converting kebab-case to camelCase
+      Object.entries(value).forEach(([propKey, propValue]) => {
+        if (propKey && typeof propKey === 'string') {
+          // Convert kebab-case to camelCase for dataset
+          const camelKey = propKey.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+          el.dataset[camelKey] = propValue;
+        }
+      });
     } else if (key === 'className' || key === 'class') {
       el.className = value || '';
     } else if (key.startsWith('on') && typeof value === 'function') {
@@ -198,6 +208,12 @@ function setElementProps(el, props) {
         }
       }
     } else {
+      // Validate attribute name before setting
+      if (key.includes('"') || key.includes("'") || key.includes(' ') || key.includes('\n') || key.includes('\t')) {
+        console.warn(`Skipping malformed attribute name: "${key}"`);
+        return;
+      }
+      
       if (value === true) {
         el.setAttribute(key, '');
       } else if (value !== false && value != null) {
@@ -237,11 +253,20 @@ function updateElementProps(el, oldProps, newProps) {
       if (oldValue && typeof oldValue === 'object') {
         Object.keys(oldValue).forEach(dataKey => {
           if (!(dataKey in newValue)) {
-            delete el.dataset[dataKey];
+            // Convert kebab-case to camelCase for deletion
+            const camelKey = dataKey.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+            delete el.dataset[camelKey];
           }
         });
       }
-      Object.assign(el.dataset, newValue);
+      // Handle dataset properties safely, converting kebab-case to camelCase
+      Object.entries(newValue).forEach(([propKey, propValue]) => {
+        if (propKey && typeof propKey === 'string') {
+          // Convert kebab-case to camelCase for dataset
+          const camelKey = propKey.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+          el.dataset[camelKey] = propValue;
+        }
+      });
     } else if (key === 'className' || key === 'class') {
       el.className = newValue || '';
     } else if (key.startsWith('on') && typeof newValue === 'function') {
@@ -476,6 +501,18 @@ export function htmlToVNodes(html) {
       
       // Extract attributes
       Array.from(node.attributes).forEach(attr => {
+        // Validate attribute name to prevent invalid characters
+        if (!attr.name || typeof attr.name !== 'string') {
+          console.warn(`Skipping invalid attribute name: "${attr.name}"`);
+          return;
+        }
+        
+        // Check for obviously malformed attribute names (containing quotes, spaces, etc.)
+        if (attr.name.includes('"') || attr.name.includes("'") || attr.name.includes(' ') || attr.name.includes('\n') || attr.name.includes('\t')) {
+          console.warn(`Skipping malformed attribute name: "${attr.name}"`);
+          return;
+        }
+        
         if (attr.name === 'class') {
           props.className = attr.value;
         } else if (attr.name.startsWith('data-')) {

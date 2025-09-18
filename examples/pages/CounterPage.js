@@ -1,4 +1,5 @@
-import { defineComponent, utils, Velvet } from '../../index.js';
+import { defineComponentVDOM } from '../../src/vdom/defineComponentVDOM.js';
+import { utils, Velvet } from '../../index.js';
 import { 
   counterStore, 
   preferencesStore, 
@@ -10,7 +11,7 @@ import {
 } from '../stores/index.js';
 
 // Counter Page (Advanced Global Store) — functional
-export const CounterPage = defineComponent((ctx) => {
+export const CounterPage = defineComponentVDOM((ctx) => {
   const { html, on, useState } = ctx;
   const { vs } = Velvet.useVelvet(ctx);
   const [showAdvanced, setShowAdvanced] = useState(false);

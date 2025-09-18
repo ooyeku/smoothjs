@@ -286,6 +286,8 @@ export function defineComponent(setup) {
       // Cleanup removed or changed effects
       for (let i = 0; i < prevLen; i++) {
         const p = prev[i];
+        if (!p) continue; // Skip undefined effects (sparse array)
+        
         const n = i < nextLen ? next[i] : null;
         if (p && (!n || depsChanged(p.deps, n.deps))) {
           if (typeof p.cleanup === 'function') {
@@ -297,6 +299,8 @@ export function defineComponent(setup) {
       // Run new/changed effects
       for (let i = 0; i < nextLen; i++) {
         const n = next[i];
+        if (!n) continue; // Skip undefined effects (sparse array)
+        
         const p = i < prevLen ? prev[i] : null;
         const shouldRun = !p || !('deps' in p) || depsChanged(p.deps, n.deps);
         // If no deps provided, always run

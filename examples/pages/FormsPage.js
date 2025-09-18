@@ -1,6 +1,7 @@
-import { defineComponent, Forms, Security, Velvet } from '../../index.js';
+import { defineComponentVDOM } from '../../src/vdom/defineComponentVDOM.js';
+import { Forms, Security, Velvet } from '../../index.js';
 
-export const FormsPage = defineComponent((ctx) => {
+export const FormsPage = defineComponentVDOM((ctx) => {
   const { html, on, useState } = ctx;
   const { vs } = Velvet.useVelvet(ctx);
   // validators

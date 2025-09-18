@@ -1,7 +1,8 @@
-import { defineComponent, createElement } from '../../index.js';
+import { defineComponentVDOM } from '../../src/vdom/defineComponentVDOM.js';
+import { createElement } from '../../index.js';
 
 // DOM Demo Page (functional)
-export const DomPage = defineComponent(({ html, on, find }) => {
+export const DomPage = defineComponentVDOM(({ html, on, find }) => {
   on('click', '#addItem', () => {
     const list = find('#dom-list');
     if (!list) return;

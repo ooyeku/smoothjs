@@ -1,6 +1,7 @@
-import { defineComponent, http, Query } from '../../index.js';
+import { defineComponentVDOM } from '../../src/vdom/defineComponentVDOM.js';
+import { http, Query } from '../../index.js';
 
-const FunctionalPage = defineComponent(({ useState, useEffect, useQuery, html, on }) => {
+const FunctionalPage = defineComponentVDOM(({ useState, useEffect, useQuery, html, on }) => {
   // Functional Counter demo
   const [count, setCount] = useState(0);
   on('click', '#fc-inc', () => setCount(v => v + 1));

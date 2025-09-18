@@ -92,12 +92,22 @@
     main a:hover { text-decoration: underline; }
     [data-theme="dark"] main a { color: #8dd9ff; text-decoration: none; }
     [data-theme="dark"] main a:hover { color: #c7ebff; }
-    footer { text-align: center; color: var(--muted); padding: 2rem 1rem; }
+    footer { 
+      text-align: center; 
+      color: var(--muted); 
+      padding: 2rem 1rem; 
+      font-size: 0.875rem;
+    }
     .muted { color: var(--muted); }
     [data-theme="dark"] .muted { color: #ffffff; }
 
-    /* Ensure footer text is white in dark mode */
-    [data-theme="dark"] footer { color: #ffffff; }
+    /* Ensure footer text is white in dark mode with higher specificity */
+    [data-theme="dark"] footer,
+    [data-theme="dark"] footer *,
+    body[data-theme="dark"] footer,
+    body[data-theme="dark"] footer * { 
+      color: #ffffff !important; 
+    }
 
     /* Ensure header text is white in dark mode */
     [data-theme="dark"] header,

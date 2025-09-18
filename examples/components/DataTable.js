@@ -64,18 +64,18 @@ export class DataTable extends Component {
     const sortedData = this.getSortedData();
 
     return this.html`
-      <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
         <table style="width: 100%;">
-          <thead style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+          <thead style="background: var(--bg); border-bottom: 1px solid var(--border);">
             <tr>
               ${this.props.selectable ? this.html`
-                <th style="padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">
+                <th style="padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">
                   <input type="checkbox" class="select-all">
                 </th>
               ` : ''}
 
               ${this.props.columns.map(col => this.html`
-                <th style="padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">
+                <th style="padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">
                   ${col.sortable ? this.html`
                     <button
                       id="sort-${col.key}"
@@ -92,18 +92,18 @@ export class DataTable extends Component {
             </tr>
           </thead>
 
-          <tbody style="background: white;">
+          <tbody style="background: var(--card);">
             ${sortedData.length === 0 ? this.html`
               <tr>
                 <td
                   colspan="${this.props.columns.length + (this.props.selectable ? 1 : 0)}"
-                  style="padding: 2rem 1rem; text-align: center; color: #6b7280;"
+                  style="padding: 2rem 1rem; text-align: center; color: var(--muted);"
                 >
                   No data available
                 </td>
               </tr>
             ` : sortedData.map((row, index) => this.html`
-              <tr data-key="${row.id || index}" style="border-bottom: 1px solid #e5e7eb;">
+              <tr data-key="${row.id || index}" style="border-bottom: 1px solid var(--border);">
                 ${this.props.selectable ? this.html`
                   <td style="padding: 1rem; white-space: nowrap;">
                     <input
@@ -116,7 +116,7 @@ export class DataTable extends Component {
                 ` : ''}
 
                 ${this.props.columns.map(col => this.html`
-                  <td style="padding: 1rem; white-space: nowrap; font-size: 0.875rem; color: #111827;">
+                  <td style="padding: 1rem; white-space: nowrap; font-size: 0.875rem; color: var(--text);">
                     ${col.render ? col.render(row[col.key], row) : row[col.key]}
                   </td>
                 `).join('')}
