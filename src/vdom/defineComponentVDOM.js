@@ -244,7 +244,7 @@ export function defineComponentVDOM(setup) {
         if (domNode) this.element.appendChild(domNode);
       } else if (newVDOM.type === 'fragment') {
         // Replace single node with fragment
-        if (oldVDOM.el) {
+        if (oldVDOM.el && oldVDOM.el.parentNode) {
           oldVDOM.el.parentNode.removeChild(oldVDOM.el);
         }
         newVDOM.children.forEach(child => {
@@ -262,8 +262,8 @@ export function defineComponentVDOM(setup) {
      */
     _mountVDOM(vdom) {
       // Clear existing content
-      while (this.element.firstChild) {
-        this.element.removeChild(this.element.firstChild);
+      if (this.element) {
+        this.element.textContent = '';
       }
       
       // Mount new content

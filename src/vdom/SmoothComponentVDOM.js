@@ -43,7 +43,8 @@ export class SmoothComponentVDOM extends SmoothComponent {
    * @param {boolean} enabled - Whether to enable virtual DOM
    */
   setVDOMEnabled(enabled) {
-    this._vdomEnabled = enabled;
+    this._vdomEnabled = !!enabled;
+    try { if (this.element) this.render(); } catch {}
   }
 
   /**
@@ -295,8 +296,8 @@ export class SmoothComponentVDOM extends SmoothComponent {
    */
   _mountVDOM(vdom) {
     // Clear existing content
-    while (this.element.firstChild) {
-      this.element.removeChild(this.element.firstChild);
+    if (this.element) {
+      this.element.textContent = '';
     }
     
     // Mount new content
@@ -335,7 +336,7 @@ export class SmoothComponentVDOM extends SmoothComponent {
       if (domNode) this.element.appendChild(domNode);
     } else if (newVDOM.type === 'fragment') {
       // Replace single node with fragment
-      if (oldVDOM.el) {
+      if (oldVDOM.el && oldVDOM.el.parentNode) {
         oldVDOM.el.parentNode.removeChild(oldVDOM.el);
       }
       newVDOM.children.forEach(child => {
