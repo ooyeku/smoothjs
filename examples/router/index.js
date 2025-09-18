@@ -26,6 +26,7 @@ router
   .route('/design', () => import('../pages/DesignSystemPage.js').then(m => m.DesignSystemPage))
   .route('/forms', () => import('../pages/FormsPage.js').then(m => m.FormsPage))
   .route('/functional', () => import('../pages/FunctionalPage.js').then(m => m.FunctionalPage))
-  .route('/datatable', () => import('../pages/DataTablePage.js').then(m => m.DataTablePage));
+  .route('/datatable', () => import('../pages/DataTablePage.js').then(m => m.DataTablePage))
+  .route('/vdom', () => import('../pages/VDomPage.js').then(m => m.VDomPage));
 
 export { router };
